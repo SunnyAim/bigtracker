@@ -1,3 +1,5 @@
+/// <reference types="../CTAutocomplete" />
+
 import PogObject from "../PogData";
 
 export default class PlayerObject {

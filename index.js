@@ -381,6 +381,10 @@ register("command", (...args) => {
             }
             break;
         }
+        case "sstimes": {
+            getSSTimes();
+            break;
+        }
         case "list":
         case "viewall":
         case "show":

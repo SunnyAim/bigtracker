@@ -37,7 +37,7 @@ if (data.firstTime) {
         
         for (let UUID in oldPlayerData) {
             let oldPlayer = oldPlayerData[UUID];
-            console.log(`${oldPlayer?.["lastKnown"]}`);
+            // console.log(`${oldPlayer?.["lastKnown"]}`);
 
             new PlayerObject(UUID, oldPlayer?.["lastKnown"]?.toLowerCase(), oldPlayer?.["note"], oldPlayer?.["dodge"], oldPlayer?.["dodgeLength"],
                 oldPlayer?.["dodgeDate"], oldPlayer?.["numRuns"], oldPlayer?.["lastSession"], oldPlayer?.["avgDeaths"], oldPlayer?.["avgSSTime"],
@@ -208,7 +208,7 @@ register("packetReceived", (packet, event) => {
             campStart = Date.now();
             let brTime = Date.now() - runStart;
             brTime /= 1000;
-            console.log(`brTime: ${brTime}`);
+            // console.log(`brTime: ${brTime}`);
 
             if (brTime > 45) {
                 brTime = 45;
@@ -281,20 +281,20 @@ register("packetReceived", (packet, event) => {
     }
     else if (text.match(/([a-zA-Z0-9_]{3,16}) completed a device!.+/)) {
         let completedIn = parseFloat(((Date.now() - termsStart) / 1000).toFixed(2));
-        console.log(`completedin> ${completedIn}`);
+        // console.log(`completedin> ${completedIn}`);
         const match = text.match(/([a-zA-Z0-9_]{3,16}) completed a device!.+/);
         const name = match[1].toLowerCase();
         let player = getPlayerDataByName(name);
-        console.log(`${name} >> ${partyMembers[name]} << ${completedIn}`)
+        // console.log(`${name} >> ${partyMembers[name]} << ${completedIn}`)
         if (completedIn > 17) {
             completedIn = 17;
         }
 
         if (!ssDone && partyMembers[name] == "Healer") {
             if (completedIn != 17) ChatLib.chat(`SS Completed in ${completedIn}`);
-            console.log(`ssDone Detected and SS Completed in ${completedIn}`);
+            // console.log(`ssDone Detected and SS Completed in ${completedIn}`);
             ssDone = true;
-            console.log(`updating AVGSSTIME completedIn: ${completedIn}`);
+            // console.log(`updating AVGSSTIME completedIn: ${completedIn}`);
             if (!player) {
                 executeQueue.push([name, "updateMovingAVG", Date.now(), "AVGSSTIME", "AVGSSTIMEN", completedIn]);
             } else {
@@ -443,7 +443,7 @@ register("tick", () => {
         if (!executeQueue?.[i]?.[2]) return;
 
         if (Date.now() - executeQueue[i][2] > 5000) {
-            console.log(`failed to get player ${executeQueue[i][0]}`);
+            console.log(`failed to get player ${executeQueue[i][0]}, task: ${executeQueue[i][1]}`);
             delete executeQueue[i];
             continue;
         }

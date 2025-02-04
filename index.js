@@ -131,7 +131,7 @@ const getPartyMembers = () => {
                 deadPlayer = true;
             }
 
-            let name = line.split(" ")?.[1].toLowerCase();
+            let name = line?.split(" ")?.[1]?.toLowerCase();
 
             if (!namesToUUID[name]) {
                 getPlayerDataByName(name);

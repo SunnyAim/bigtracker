@@ -132,6 +132,10 @@ const getPartyMembers = () => {
             }
 
             let name = line?.split(" ")?.[1]?.toLowerCase();
+            // Failed to find: [youtube]
+            if (name.includes("[youtube]")) {
+                name = line?.split(" ")?.[2]?.toLowerCase();
+            }
 
             if (!namesToUUID[name]) {
                 getPlayerDataByName(name);
@@ -581,7 +585,7 @@ const exportData = () => {
         allPlayerData.push(player.playerData);
     }
     FileLib.write("./config/ChatTriggers/modules/bigtracker/export.json", JSON.stringify(allPlayerData), true);
-    ChatLib.chat("&bExport Successful");
+    ChatLib.chat("&aExport Successful");
 }
 
 const importData = () => {

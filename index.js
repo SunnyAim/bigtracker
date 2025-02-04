@@ -352,7 +352,7 @@ register("command", (...args) => {
             }
             let player = getPlayerDataByName(args[1].toLowerCase());
             if (!player) {
-                executeQueue.push([args[1].toLowerCase(), "PRINTPLAYER", Date.now()])
+                executeQueue.push([args[1].toLowerCase(), "PRINTPLAYER", Date.now()]);
             } else {
                 player.printPlayer();
             }
@@ -393,21 +393,41 @@ register("command", (...args) => {
             printAll();
             break;
         }
-        default: {
-            let player = getPlayerDataByName(args[0]?.toLowerCase());
+        case "note": {
+            let player = getPlayerDataByName(args[1]?.toLowerCase());
             if (!player) {
-                executeQueue.push([args[0], "DEFAULT", Date.now(), args]);
+                executeQueue.push([args[1], "NOTE", Date.now(), args]);
                 return;
             }
-            if(args.length > 2) {
-                let note = args?.splice(1)?.join(" ");
-                if (!note) note = " ";
+            if (args.length > 2) {
+                let note = args?.splice(2)?.join(" ");
                 player.playerData.NOTE = note;
-                player.save();
+                ChatLib.chat(`&b${args[1]}`);
+                ChatLib.chat(`&8Note &7>> &f${note}`);
             } else {
-                player.dodge(args?.[1]);
+                player.playerData.NOTE = "";
+                ChatLib.chat(`&9Cleared Note &7>> &f${args[1]}`);
             }
+            player.save();
             break;
+        }
+        default: {
+            let player = getPlayerDataByName(args[0].toLowerCase());
+            if (!player) {
+                executeQueue.push([args[0].toLowerCase(), "PRINTPLAYER", Date.now()]);
+            } else {
+                player.printPlayer();
+            }
+
+            // if(args.length > 2) {
+            //     
+            //     if (!note) note = " ";
+            //     player.playerData.NOTE = note;
+            //     player.save();
+            // } else {
+            //     player.dodge(args?.[1]);
+            // }
+            // break;
         }
     }
 }).setName("big");
@@ -500,16 +520,18 @@ register("tick", () => {
                 player.printPlayer();
                 break;
             }
-            case "DEFAULT": {
+            case "NOTE": {
                 let args = executeQueue[i][3];
                 if(args.length > 2) {
-                    let note = args?.splice(1)?.join(" ");
-                    if (!note) note = " ";
+                    let note = args?.splice(2)?.join(" ");
                     player.playerData.NOTE = note;
-                    player.save();
+                    ChatLib.chat(`&b${args[1]}`);
+                    ChatLib.chat(`&8Note &7>> &f${note}`);
                 } else {
-                    player.dodge(args?.[1]);
+                    player.playerData.NOTE = "";
+                    ChatLib.chat(`&9Cleared Note &7>> &f${args[1]}`);
                 }
+                player.save();
                 break;
             }
         }
@@ -521,10 +543,10 @@ register("tick", () => {
 
 const commandHelp = () => {
     ChatLib.chat("/big help &7<- this");
-    ChatLib.chat("/big get <name> &7<- view stored info about a player");
-    ChatLib.chat("/big dodge <name> <days?> &7<- mark player as dodged. optionally add num of days to dodge the player for. dodge again to undodge.");
+    ChatLib.chat("/big <name> &7<- view stored info about a player");
+    ChatLib.chat("/big dodge <name> <days?> <note?>&7<- mark player as dodged. optionally add num of days to dodge the player for. dodge again to undodge.");
     ChatLib.chat("/big list &7<- view all players with notes");
-    ChatLib.chat("/big <name> <note> &7<- add or remove a note about a player");
+    ChatLib.chat("/big note <name> <note> &7<- add or remove a note about a player");
     ChatLib.chat("/big autokick &7<- autokick dodged players");
     ChatLib.chat("/big sayreason &7<- say note in chat when autokicking someone");
     ChatLib.chat("/big sstimes &7<- print all players average ss times from fastest to slowest");

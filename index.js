@@ -443,18 +443,30 @@ const printAll = () => {
 let executeQueue = [];
 register("tick", () => {
     for (let i = 0; i < executeQueue.length; i++) {
-        if (i < 0 || i > executeQueue.length) return;
-        if (!executeQueue?.[i]?.[2]) return;
-
-        if (Date.now() - executeQueue[i][2] > 5000) {
-            console.log(`failed to get player ${executeQueue[i][0]}, task: ${executeQueue[i][1]}`);
-            delete executeQueue[i];
+        // console.log(`Attempting ${executeQueue?.[i]?.[1]} on ${executeQueue?.[i]?.[0]}`);
+        if (i < 0 || i > executeQueue.length) continue;
+        
+        if (!executeQueue?.[i]?.[2]) {
+            // console.log("continuing at !executeQueue?.[i]?.[2]")
             continue;
         }
+
+        if (Date.now() - executeQueue[i][2] > 5000) {
+            // console.log(`failed to get player ${executeQueue[i][0]}, task: ${executeQueue[i][1]}`);
+            executeQueue = executeQueue.splice(i, i);
+            continue;
+        }
+
+        executeQueue[i][0] = executeQueue[i][0].toLowerCase();
+
         let player = getPlayerDataByName(executeQueue[i][0], false);
 
-        if (!player) continue;
+        if (!player) {
+            // console.log("continuing because !player")
+            continue;
+        }
 
+        // console.log(`switching ${executeQueue[i][1]}`);
         switch (executeQueue[i][1]) {
             case "dodge": {
                 player.dodge(executeQueue[i]?.[3]);
@@ -499,7 +511,8 @@ register("tick", () => {
                 break;
             }
         }
-        delete executeQueue[i];
+
+        executeQueue = executeQueue.splice(i, i);
     }
 });
 

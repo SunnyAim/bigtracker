@@ -48,9 +48,11 @@ export default class PlayerObject {
     }
 
     printPlayer() {
-        ChatLib.chat(`${this.playerData.USERNAME}`);
+        ChatLib.chat(`&7>> &b${this.playerData.USERNAME}`);
 
-        if (this.playerData.NOTE != "") ChatLib.chat(`${this.playerData.NOTE}`);
+        if (this.playerData.NOTE != "") {
+            ChatLib.chat(`&9Note &7>> &f${this.playerData.NOTE}`);
+        }
 
         if (this.playerData.DODGE) {
             let playerString = ""
@@ -69,13 +71,51 @@ export default class PlayerObject {
         }
 
         if (this.playerData.NUMRUNS != 0) {
-            ChatLib.chat(`runs w/: ${this.playerData.NUMRUNS}`);
-            ChatLib.chat(`avg deaths: ${(this.playerData.DEATHS / this.playerData.NUMRUNS).toFixed(1)}`);
-            ChatLib.chat(`last run: ${(((Date.now() - this.playerData.LASTSESSION) / 1000) / 60 / 60 / 24).toFixed(1)} days ago`);
-            ChatLib.chat(`avg runtime: ${Math.trunc(this.playerData.AVGRUNTIME / 60)}m ${(this.playerData.AVGRUNTIME % 60).toFixed(1)}s`);
-            let medRuntime = parseFloat(this.getMedian("RUNTIMETRACKING"));
-            ChatLib.chat(`med runtime: ${Math.trunc(medRuntime / 60)}m ${(medRuntime % 60).toFixed(1)}s`);
-            ChatLib.chat(`PBs: SS: ${this.playerData.SSPB} / RUN: ${this.playerData.RUNPB} / CAMP: ${this.playerData.CAMPPB} / TERMS: ${this.playerData.TERMSPB}`);
+            ChatLib.chat(`&9Runs &7>> &f${this.playerData.NUMRUNS}`);
+            ChatLib.chat(`&9DPR &7>> ${(this.playerData.DEATHS / this.playerData.NUMRUNS) < 1 ? "&a" : "&c"}${(this.playerData.DEATHS / this.playerData.NUMRUNS).toFixed(1)}`);
+            ChatLib.chat(`&9Last Run &7>> &f${(((Date.now() - this.playerData.LASTSESSION) / 1000) / 60 / 60 / 24).toFixed(1)} days ago`);
+
+            let pbString = "&9PBs &7>> ";
+
+            if (this.playerData.SSPB != 17) {
+                pbString += `&fSS: `;
+                let pbSS = parseFloat(this.playerData.SSPB);
+                if (pbSS < 12) pbString += `&a${pbSS}`;
+                else if (pbSS < 13) pbString += `&e${pbSS}`;
+                else pbString += `&c${pbSS}`;
+                pbString += " &7| &r";
+            }
+
+            if (this.playerData.TERMSPB != 80) {
+                pbString += `&fTERMS: `;
+                let pbTerms = parseFloat(this.playerData.TERMSPB);
+                if (pbTerms < 40) pbString += `&a${pbTerms}`;
+                else if (pbTerms < 45) pbString += `&e${pbTerms}`;
+                else pbString += `&c${pbTerms}`;
+                pbString += " &7| &r";
+            }
+
+            if (this.playerData.RUNPB != 1000) {
+                pbString += `&fRUN: `;
+                let pbRun = parseFloat(this.playerData.RUNPB);
+                if (pbRun < 310) pbString += `&a${pbRun}`;
+                else if (pbRun < 330) pbString += `&e${pbRun}`;
+                else pbString += `&c${pbRun}`;
+                pbString += " &7| &r";
+            }
+
+            if (this.playerData.CAMPPB != 100) {
+                pbString += `&fCAMP: `;
+                let pbCamp = parseFloat(this.playerData.CAMPPB);
+                if (pbCamp < 61) pbString += `&a${pbCamp}`;
+                else if (pbCamp < 65) pbString += `&e${pbCamp}`;
+                else pbString += `&c${pbCamp}`;
+                pbString += " &7| &r";
+            }
+
+            if (pbString != "&9PBs &7>> ") {
+                ChatLib.chat(pbString);
+            }
         } else {
             ChatLib.chat("no runs");
         }
@@ -120,10 +160,23 @@ export default class PlayerObject {
             medString += " &7| &r";
         }
 
-        ChatLib.chat(medString);
+        if (this.playerData.RUNTIMETRACKING.length != 0) {
+            medString += `&fRUNTIME: `;
+            let runTimeMed = parseFloat(this.getMedian("RUNTIMETRACKING"));
+            let formattedRuntime = `${Math.trunc(runTimeMed / 60)}m ${(runTimeMed % 60).toFixed(1)}s`
+            if (runTimeMed < 330.0) medString += `&a${formattedRuntime}`;
+            else if (runTimeMed < 360.0) medString += `&e${formattedRuntime}`;
+            else medString += `&c${formattedRuntime}`;
+            medString += " &7| &r";
+        }
+
+
+        if (medString != "&9AVGs &7>> ") {
+            ChatLib.chat(medString);
+        }
 
         if (this.playerData.PRE4RATEN != 0) {
-            ChatLib.chat(`pre4 rate: ${this.playerData.PRE4RATE}/${this.playerData.PRE4RATEN} (${((this.playerData.PRE4RATE / this.playerData.PRE4RATEN) * 100).toFixed(1)}%)`);
+            ChatLib.chat(`&9pre4 &7>> &f${this.playerData.PRE4RATE}/${this.playerData.PRE4RATEN} (${((this.playerData.PRE4RATE / this.playerData.PRE4RATEN) * 100).toFixed(1)}%)`);
         }
     }
 
@@ -170,6 +223,7 @@ export default class PlayerObject {
                 break;
             }
             case "AVGRUNTIME": {
+                this.playerData.LASTSESSION = Date.now();
                 this.addTime("RUNTIMETRACKING", TIME);
                 if (TIME < this.playerData.RUNPB) {
                     this.playerData.RUNPB = TIME;

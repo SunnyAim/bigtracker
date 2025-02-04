@@ -80,7 +80,7 @@ export default class PlayerObject {
             ChatLib.chat("no runs");
         }
 
-        // this.playerDataCheck();
+        this.playerDataCheck();
 
         let medString = "&9AVGs &7>> ";
 
@@ -303,7 +303,7 @@ export default class PlayerObject {
 
         let temparr = this.playerData[TYPE].map( (x) => x);
         temparr = temparr.sort((a, b) => a - b);
-        
+
         let half = Math.floor(temparr.length / 2);
 
         let val = (temparr.length % 2 ? temparr[half] : (temparr[half - 1] + temparr[half]) / 2);

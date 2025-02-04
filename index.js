@@ -210,8 +210,8 @@ register("packetReceived", (packet, event) => {
             brTime /= 1000;
             // console.log(`brTime: ${brTime}`);
 
-            if (brTime > 45) {
-                brTime = 45;
+            if (brTime > 60) {
+                brTime = 60;
             }
 
             brTime = parseFloat( brTime.toFixed(2) );

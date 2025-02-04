@@ -50,11 +50,11 @@ export default class PlayerObject {
     printPlayer() {
         ChatLib.chat(`${this.playerData.USERNAME}`);
 
-        if (this.playerData.NOTE !== "") ChatLib.chat(`${this.playerData.NOTE}`);
+        if (this.playerData.NOTE != "") ChatLib.chat(`${this.playerData.NOTE}`);
 
         if (this.playerData.DODGE) {
             let playerString = ""
-            if (this.playerData.DODGELENGTH !== 0) {
+            if (this.playerData.DODGELENGTH != 0) {
                 let timeLeft = Date.now() - this.playerData.DODGEDATE;
                 timeLeft /= 1000; // seconds
                 timeLeft /= 60; // minutes
@@ -68,23 +68,23 @@ export default class PlayerObject {
             ChatLib.chat(playerString);
         }
 
-        if (this.playerData.NUMRUNS !== 0) {
+        if (this.playerData.NUMRUNS != 0) {
             ChatLib.chat(`runs w/: ${this.playerData.NUMRUNS}`);
             ChatLib.chat(`avg deaths: ${(this.playerData.DEATHS / this.playerData.NUMRUNS).toFixed(1)}`);
             ChatLib.chat(`last run: ${(((Date.now() - this.playerData.LASTSESSION) / 1000) / 60 / 60 / 24).toFixed(1)} days ago`);
             ChatLib.chat(`avg runtime: ${Math.trunc(this.playerData.AVGRUNTIME / 60)}m ${(this.playerData.AVGRUNTIME % 60).toFixed(1)}s`);
-            let medRuntime = this.getMedian("RUNTIMETRACKING");
+            let medRuntime = parseFloat(this.getMedian("RUNTIMETRACKING"));
             ChatLib.chat(`med runtime: ${Math.trunc(medRuntime / 60)}m ${(medRuntime % 60).toFixed(1)}s`);
             ChatLib.chat(`PBs: SS: ${this.playerData.SSPB} / RUN: ${this.playerData.RUNPB} / CAMP: ${this.playerData.CAMPPB} / TERMS: ${this.playerData.TERMSPB}`);
         } else {
             ChatLib.chat("no runs");
         }
 
-        playerDataCheck();
+        // this.playerDataCheck();
 
-        let medString = "&9AVGs &7>> "
+        let medString = "&9AVGs &7>> ";
 
-        if (this.playerData.SSTRACKING.length !== 0) {
+        if (this.playerData.SSTRACKING.length != 0) {
             medString += `&fSS: `;
             let medSS = parseFloat(this.getMedian("SSTRACKING"));
             if (medSS < 13.0) medString += `&a${medSS}`;
@@ -93,7 +93,7 @@ export default class PlayerObject {
             medString += " &7| &r";
         }
 
-        if (this.playerData.BRTRACKING.length !== 0) {
+        if (this.playerData.BRTRACKING.length != 0) {
             medString += `&fBR: `;
             let medBR = parseFloat(this.getMedian("BRTRACKING"));
             if (medBR < 25.0) medString += `&a${medBR}`;
@@ -102,7 +102,7 @@ export default class PlayerObject {
             medString += " &7| &r";
         }
 
-        if (this.playerData.CAMPSTRACKING.length !== 0) {
+        if (this.playerData.CAMPSTRACKING.length != 0) {
             medString += `&fCAMP: `;
             let medCamp = parseFloat(this.getMedian("CAMPSTRACKING"));
             if (medCamp < 66.0) medString += `&a${medCamp}`;
@@ -111,7 +111,7 @@ export default class PlayerObject {
             medString += " &7| &r";
         }
 
-        if (this.playerData.TERMSTRACKING.length !== 0) {
+        if (this.playerData.TERMSTRACKING.length != 0) {
             medString += `&fTERMS: `;
             let medTerms = parseFloat(this.getMedian("TERMSTRACKING"));
             if (medTerms < 45.0) medString += `&a${medTerms}`;
@@ -122,26 +122,26 @@ export default class PlayerObject {
 
         ChatLib.chat(medString);
 
-        if (this.playerData.PRE4RATEN !== 0) {
+        if (this.playerData.PRE4RATEN != 0) {
             ChatLib.chat(`pre4 rate: ${this.playerData.PRE4RATE}/${this.playerData.PRE4RATEN} (${((this.playerData.PRE4RATE / this.playerData.PRE4RATEN) * 100).toFixed(1)}%)`);
         }
     }
 
     // for tracking things that were added after v0.0.1
     playerDataCheck() {
-        if (!this.playerData.SSTRACKING) {
+        if (!this.playerData?.["SSTRACKING"]) {
             this.playerData.SSTRACKING = [];
         }
-        if (!this.playerData.TERMSTRACKING) {
+        if (!this.playerData?.["TERMSTRACKING"]?.length) {
             this.playerData.TERMSTRACKING = [];
         }
-        if (!this.playerData.CAMPSTRACKING) {
+        if (!this.playerData?.["CAMPSTRACKING"]?.length) {
             this.playerData.CAMPSTRACKING = [];
         }
-        if (!this.playerData.BRTRACKING) {
+        if (!this.playerData?.["BRTRACKING"]?.length) {
             this.playerData.BRTRACKING  = [];
         }
-        if (!this.playerData.RUNTIMETRACKING) {
+        if (!this.playerData?.["RUNTIMETRACKING"]?.length) {
             this.playerData.RUNTIMETRACKING = [];
         }
 
@@ -237,11 +237,11 @@ export default class PlayerObject {
     check(autokick=false, sayReason=false) {
         this.printPlayer();
         if(this.playerData.DODGE) {
-            World.playSound("mob.horse.donkey.idle", 1, 1)
+            World.playSound("mob.horse.donkey.idle", 1, 1);
             let dodgeStr = "";
             // ChatLib.chat(`${this.playerData.USERNAME} is dodged.`);
             
-            if (this.playerData.DODGELENGTH !== 0) {
+            if (this.playerData.DODGELENGTH != 0) {
                 let timeLeft = Date.now() - this.playerData.DODGEDATE;
                 timeLeft /= 1000; // seconds
                 timeLeft /= 60; // minutes
@@ -261,7 +261,7 @@ export default class PlayerObject {
                 dodgeStr = ": (dodged)";
             }
 
-            if (this.playerData.NOTE !== "") {
+            if (this.playerData.NOTE != "") {
                 dodgeStr += ` : ${this.playerData.NOTE}`;
             }
 
@@ -281,7 +281,7 @@ export default class PlayerObject {
     }
 
     addTime(TYPE, TIME) {
-        if (!this.playerData?.[TYPE]) {
+        if (!this.playerData?.[TYPE]?.length) {
             this.playerData[TYPE] = [];
         }
 
@@ -295,14 +295,16 @@ export default class PlayerObject {
     }
 
     getMedian(TYPE) {
-        if (!this.playerData?.[TYPE]) {
+        if (!this.playerData?.[TYPE]?.length) {
             this.playerData[TYPE] = [];
             this.save();
             return 0.0;
         }
 
-        let temparr = [...this.playerData[TYPE]].sort((a, b) => a - b);
-        const half = Math.floor(temparr.length / 2);
+        let temparr = this.playerData[TYPE].map( (x) => x);
+        temparr = temparr.sort((a, b) => a - b);
+        
+        let half = Math.floor(temparr.length / 2);
 
         let val = (temparr.length % 2 ? temparr[half] : (temparr[half - 1] + temparr[half]) / 2);
         return val.toFixed(2);

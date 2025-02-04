@@ -418,16 +418,6 @@ register("command", (...args) => {
             } else {
                 player.printPlayer();
             }
-
-            // if(args.length > 2) {
-            //     
-            //     if (!note) note = " ";
-            //     player.playerData.NOTE = note;
-            //     player.save();
-            // } else {
-            //     player.dodge(args?.[1]);
-            // }
-            // break;
         }
     }
 }).setName("big");

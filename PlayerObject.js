@@ -260,16 +260,22 @@ export default class PlayerObject {
             this.playerData.DODGELENGTH = 0;
             this.playerData.DODGEDATE = 0;
             this.save();
-            ChatLib.chat(`no longer dodging ${this.playerData.USERNAME}`);
+            ChatLib.chat(`&9Dodge Removed &7>> &f${this.playerData.USERNAME}`);
             return;
         }
 
+        let dodgeStr = `&8Now Dodging &7>> &f${this.playerData.USERNAME}`
+
         if (!length || length === undefined) {
             length = 0;
+        } else {
+            dodgeStr += `\n&8Days &7>> &f${length}`;
         }
 
         if (!note || note == undefined) {
             note = "";
+        } else if (note != "") {
+            dodgeStr += `\n&8Note &7>> &f${note}`;
         }
 
         if (note != "") {
@@ -284,8 +290,7 @@ export default class PlayerObject {
         this.playerData.DODGE = true;
         this.save();
 
-        ChatLib.chat(`${this.playerData.USERNAME}${length == 0 ? "" : " " + length} ${note}`);
-
+        ChatLib.chat(dodgeStr);
     }
 
     check(autokick=false, sayReason=false) {

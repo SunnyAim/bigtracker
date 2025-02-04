@@ -375,7 +375,7 @@ register("command", (...args) => {
 
             let player = getPlayerDataByName(username);
             if (!player) {
-                executeQueue.push[username, "dodge", Date.now(), length, note];
+                executeQueue.push([username, "dodge", Date.now(), length, note]);
             } else {
                 player.dodge(length, note);
             }
@@ -452,6 +452,7 @@ register("tick", () => {
         }
 
         if (Date.now() - executeQueue[i][2] > 5000) {
+            ChatLib.chat(`&7Failed to find: &f${executeQueue[i][0]}`);
             // console.log(`failed to get player ${executeQueue[i][0]}, task: ${executeQueue[i][1]}`);
             executeQueue = executeQueue.splice(i, i);
             continue;
@@ -469,7 +470,7 @@ register("tick", () => {
         // console.log(`switching ${executeQueue[i][1]}`);
         switch (executeQueue[i][1]) {
             case "dodge": {
-                player.dodge(executeQueue[i]?.[3]);
+                player.dodge(executeQueue[i]?.[3], executeQueue[i]?.[4]);
                 break;
             }
             case "check": {
@@ -517,7 +518,6 @@ register("tick", () => {
 });
 
 
-
 const commandHelp = () => {
     ChatLib.chat("/big help &7<- this");
     ChatLib.chat("/big get <name> &7<- view stored info about a player");
@@ -536,14 +536,14 @@ const getSSTimes = () => {
     let sortedSSTimes = [];
     for (let i = 0; i < fileNames.length; i++) {
         let player = new PlayerObject(fileNames[i].replace(".json", ""));
-        if (player.playerData.AVGSSTIMEN == 0) {
+        if (!player.playerData?.SSTRACKING?.length) {
             continue;
         }
         let ssTime = player.getMedian("SSTRACKING");
         if (ssTime == 0.0) {
             continue;
         }
-        sortedSSTimes.push([player.playerData.USERNAME, ssTime, player.playerData.AVGSSTIME]);
+        sortedSSTimes.push([player.playerData.USERNAME, ssTime, player.playerData.SSPB]);
     }
 
     sortedSSTimes.sort((a,b) => a[1] - b[1]);

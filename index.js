@@ -429,7 +429,7 @@ const printAll = () => {
     for (let i = 0; i < fileNames.length; i++) {
         let player = new PlayerObject(fileNames[i].replace(".json", ""));
         if (!player.playerData.DODGE && player.playerData.NOTE == "") continue;
-        let playerString = `${player.playerData.USERNAME}:`
+        let playerString = `&7>> &b${player.playerData.USERNAME}&f:&7`
         if (player.playerData.NOTE !== "") {
             playerString += ` ${player.playerData.NOTE}`;
         }

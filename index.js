@@ -278,6 +278,7 @@ register("packetReceived", (packet, event) => {
     else if (text == "[NPC] Mort: Here, I found this map when I first entered the dungeon.") {
         runStart = Date.now();
         getPartyMembers();
+        setTimeout( () => getPartyMembers(), 1000);
     }
     else if (text.match(/([a-zA-Z0-9_]{3,16}) completed a device!.+/)) {
         let completedIn = parseFloat(((Date.now() - termsStart) / 1000).toFixed(2));

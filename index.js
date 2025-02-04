@@ -360,9 +360,10 @@ register("command", (...args) => {
         }
         case "dodge": {
             let username = args?.[1]?.toLowerCase();
-            let length = args?.[2];
+            let length = Number(args?.[2]);
             let note;
-            if(!parseInt(length)) {
+
+            if(isNaN(length)) {
                 note = args?.splice(2)?.join(" ");
             } else {
                 note = args?.splice(3)?.join(" ");

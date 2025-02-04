@@ -18,7 +18,6 @@ export default class PlayerObject {
             DEATHS: avgDeaths,
             AVGSSTIME: avgSSTime,
             AVGSSTIMEN: avgSSTimeN,
-            SSTRACKING: [],
             PRE4RATE: pre4Rate,
             PRE4RATEN: pre4RateN,
             EE3RATE: ee3Rate,
@@ -33,7 +32,12 @@ export default class PlayerObject {
             SSPB: ssPB,
             TERMSPB: termsPB,
             RUNPB: runPB,
-            CAMPPB: campPB
+            CAMPPB: campPB,
+            SSTRACKING: [],
+            TERMSTRACKING: [],
+            CAMPSTRACKING: [],
+            BRTRACKING: [],
+            RUNTIMETRACKING: []
         }, `${UUID}.json`);
 
         this.save();
@@ -69,35 +73,79 @@ export default class PlayerObject {
             ChatLib.chat(`avg deaths: ${(this.playerData.DEATHS / this.playerData.NUMRUNS).toFixed(1)}`);
             ChatLib.chat(`last run: ${(((Date.now() - this.playerData.LASTSESSION) / 1000) / 60 / 60 / 24).toFixed(1)} days ago`);
             ChatLib.chat(`avg runtime: ${Math.trunc(this.playerData.AVGRUNTIME / 60)}m ${(this.playerData.AVGRUNTIME % 60).toFixed(1)}s`);
+            let medRuntime = this.getMedian("RUNTIMETRACKING");
+            ChatLib.chat(`med runtime: ${Math.trunc(medRuntime / 60)}m ${(medRuntime % 60).toFixed(1)}s`);
             ChatLib.chat(`PBs: SS: ${this.playerData.SSPB} / RUN: ${this.playerData.RUNPB} / CAMP: ${this.playerData.CAMPPB} / TERMS: ${this.playerData.TERMSPB}`);
         } else {
             ChatLib.chat("no runs");
         }
 
-        if (!this.playerData.SSTRACKING) {
-            this.playerData.SSTRACKING = [];
-            this.save();
-        }
+        playerDataCheck();
+
+        let medString = "&9AVGs &7>> "
 
         if (this.playerData.SSTRACKING.length !== 0) {
-            ChatLib.chat(`ss median: ${this.getSSMedian()}`);
+            medString += `&fSS: `;
+            let medSS = parseFloat(this.getMedian("SSTRACKING"));
+            if (medSS < 13.0) medString += `&a${medSS}`;
+            else if (medSS < 14.0) medString += `&e${medSS}`;
+            else medString += `&c${medSS}`;
+            medString += " &7| &r";
         }
+
+        if (this.playerData.BRTRACKING.length !== 0) {
+            medString += `&fBR: `;
+            let medBR = parseFloat(this.getMedian("BRTRACKING"));
+            if (medBR < 25.0) medString += `&a${medBR}`;
+            else if (medBR < 32.0) medString += `&e${medBR}`;
+            else medString += `&c${medBR}`;
+            medString += " &7| &r";
+        }
+
+        if (this.playerData.CAMPSTRACKING.length !== 0) {
+            medString += `&fCAMP: `;
+            let medCamp = parseFloat(this.getMedian("CAMPSTRACKING"));
+            if (medCamp < 66.0) medString += `&a${medCamp}`;
+            else if (medCamp < 70.0) medString += `&e${medCamp}`;
+            else medString += `&c${medCamp}`;
+            medString += " &7| &r";
+        }
+
+        if (this.playerData.TERMSTRACKING.length !== 0) {
+            medString += `&fTERMS: `;
+            let medTerms = parseFloat(this.getMedian("TERMSTRACKING"));
+            if (medTerms < 45.0) medString += `&a${medTerms}`;
+            else if (medTerms < 52.0) medString += `&e${medTerms}`;
+            else medString += `&c${medTerms}`;
+            medString += " &7| &r";
+        }
+
+        ChatLib.chat(medString);
 
         if (this.playerData.PRE4RATEN !== 0) {
             ChatLib.chat(`pre4 rate: ${this.playerData.PRE4RATE}/${this.playerData.PRE4RATEN} (${((this.playerData.PRE4RATE / this.playerData.PRE4RATEN) * 100).toFixed(1)}%)`);
         }
+    }
 
-        if (this.playerData.AVGBRN !== 0) {
-            ChatLib.chat(`avg br: ${this.playerData.AVGBR}`);
+    // for tracking things that were added after v0.0.1
+    playerDataCheck() {
+        if (!this.playerData.SSTRACKING) {
+            this.playerData.SSTRACKING = [];
+        }
+        if (!this.playerData.TERMSTRACKING) {
+            this.playerData.TERMSTRACKING = [];
+        }
+        if (!this.playerData.CAMPSTRACKING) {
+            this.playerData.CAMPSTRACKING = [];
+        }
+        if (!this.playerData.BRTRACKING) {
+            this.playerData.BRTRACKING  = [];
+        }
+        if (!this.playerData.RUNTIMETRACKING) {
+            this.playerData.RUNTIMETRACKING = [];
         }
 
-        if (this.playerData.AVGCAMPN !== 0) {
-            ChatLib.chat(`avg camp: ${this.playerData.AVGCAMP}`);
-        }
-
-        if (this.playerData.AVGTERMSN !== 0) {
-            ChatLib.chat(`avg terms: ${this.playerData.AVGTERMS}`);
-        }
+        this.save();
     }
 
     updateMovingAVG(TYPE, TYPEN, TIME, INCREMENT=true) {
@@ -114,7 +162,7 @@ export default class PlayerObject {
 
         switch (TYPE) {
             case "AVGSSTIME": {
-                this.addSS(TIME);
+                this.addTime("SSTRACKING", TIME);
                 if (TIME < this.playerData.SSPB) {
                     this.playerData.SSPB = TIME;
                     this.save();
@@ -122,6 +170,7 @@ export default class PlayerObject {
                 break;
             }
             case "AVGRUNTIME": {
+                this.addTime("RUNTIMETRACKING", TIME);
                 if (TIME < this.playerData.RUNPB) {
                     this.playerData.RUNPB = TIME;
                     this.save();
@@ -129,6 +178,7 @@ export default class PlayerObject {
                 break;
             }
             case "AVGCAMP": {
+                this.addTime("CAMPSTRACKING", TIME);
                 if (TIME < this.playerData.CAMPPB) {
                     this.playerData.CAMPPB = TIME;
                     this.save();
@@ -136,10 +186,15 @@ export default class PlayerObject {
                 break;
             }
             case "AVGTERMS": {
+                this.addTime("TERMSTRACKING", TIME);
                 if (TIME < this.playerData.TERMSPB) {
                     this.playerData.TERMSPB = TIME;
                     this.save();
                 }
+                break;
+            }
+            case "AVGBR": {
+                this.addTime("BRTRACKING", TIME);
                 break;
             }
         }
@@ -225,30 +280,31 @@ export default class PlayerObject {
         }
     }
 
-    addSS(time) {
-        if (!this.playerData.SSTRACKING) {
-            this.playerData.SSTRACKING = [];
+    addTime(TYPE, TIME) {
+        if (!this.playerData?.[TYPE]) {
+            this.playerData[TYPE] = [];
         }
 
-        this.playerData.SSTRACKING.push(time);
+        this.playerData[TYPE].push(TIME);
 
-        if (this.playerData.SSTRACKING.length > 30) {
-            this.playerData.SSTRACKING.shift();
+        if (this.playerData[TYPE].length > 30) {
+            this.playerData[TYPE].shift();
         }
 
         this.save();
     }
 
-    getSSMedian() {
-        if (!this.playerData.SSTRACKING) {
-            this.playerData.SSTRACKING = [];
+    getMedian(TYPE) {
+        if (!this.playerData?.[TYPE]) {
+            this.playerData[TYPE] = [];
+            this.save();
             return 0.0;
         }
 
-        let tempSS = [...this.playerData.SSTRACKING].sort((a, b) => a - b);
-        const half = Math.floor(tempSS.length / 2);
+        let temparr = [...this.playerData[TYPE]].sort((a, b) => a - b);
+        const half = Math.floor(temparr.length / 2);
 
-        let val = (tempSS.length % 2 ? tempSS[half] : (tempSS[half - 1] + tempSS[half]) / 2);
+        let val = (temparr.length % 2 ? temparr[half] : (temparr[half - 1] + temparr[half]) / 2);
         return val.toFixed(2);
     }
 }

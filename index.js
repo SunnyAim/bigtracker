@@ -526,7 +526,7 @@ const getSSTimes = () => {
         if (player.playerData.AVGSSTIMEN == 0) {
             continue;
         }
-        let ssTime = player.getSSMedian();
+        let ssTime = player.getMedian("SSTRACKING");
         if (ssTime == 0.0) {
             continue;
         }

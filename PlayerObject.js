@@ -5,7 +5,7 @@ import PogObject from "../PogData";
 export default class PlayerObject {
     constructor(UUID, username="unknown", note="", dodge=false, dodgeLength=0, dodgeDate=0, numRuns=0, lastSession=Date.now(), avgDeaths=0, avgSSTime=0, avgSSTimeN=0,
                 pre4Rate=0, pre4RateN=0, ee3Rate=0, ee3RateN=0, avgRunTime=0, avgBr=0, avgBrN=0, avgCamp=0, avgCampN=0, avgTerms=0, avgTermsN=0,
-                ssPB=17, termsPB=80, runPB=1000, campPB=100) {
+                ssPB=17, termsPB=80, runPB=1000, campPB=100, sstracking=[], termstracking=[], campstracking=[], brtracking=[], runtimetracking=[]) {
         this.playerData = new PogObject("bigtracker/players", {
             UUID: UUID,
             USERNAME: username?.toLowerCase(),
@@ -33,11 +33,11 @@ export default class PlayerObject {
             TERMSPB: termsPB,
             RUNPB: runPB,
             CAMPPB: campPB,
-            SSTRACKING: [],
-            TERMSTRACKING: [],
-            CAMPSTRACKING: [],
-            BRTRACKING: [],
-            RUNTIMETRACKING: []
+            SSTRACKING: sstracking,
+            TERMSTRACKING: termstracking,
+            CAMPSTRACKING: campstracking,
+            BRTRACKING: brtracking,
+            RUNTIMETRACKING: runtimetracking
         }, `${UUID}.json`);
 
         this.save();

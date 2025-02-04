@@ -331,6 +331,12 @@ register("command", (...args) => {
             commandHelp();
             break;
         }
+        case "import":
+            importData();
+            break;
+        case "export":
+            exportData();
+            break;
         case "autokick": {
             data.autoKick = !data.autoKick;
             data.save();
@@ -564,4 +570,49 @@ const getSSTimes = () => {
     sortedSSTimes.forEach(p => {
         ChatLib.chat(`${p[0]}: ${p[1]} (${p[2]})`);
     });
+}
+
+
+const exportData = () => {
+    let fileNames = new File("./config/ChatTriggers/modules/bigtracker/players").list();
+    const allPlayerData = [];
+    for (let i = 0; i < fileNames.length; i++) {
+        let player = new PlayerObject(fileNames[i].replace(".json", ""));
+        allPlayerData.push(player.playerData);
+    }
+    FileLib.write("./config/ChatTriggers/modules/bigtracker/export.json", JSON.stringify(allPlayerData), true);
+    ChatLib.chat("&bExport Successful");
+}
+
+const importData = () => {
+    if (!FileLib.exists("./config/ChatTriggers/modules/bigtracker/export.json")) {
+        ChatLib.chat("To import, bring a export.json into your bigtracker folder then run this command.");
+        return;
+    }
+    try {
+        let fileData = FileLib.read("./config/ChatTriggers/modules/bigtracker/export.json");
+        fileData = JSON.parse(fileData);
+        for (let i = 0; i < fileData.length; i++) {
+            let UUID = fileData[i].UUID;
+            if (FileLib.exists(`./config/ChatTriggers/modules/bigtracker/players/${UUID}.json`)) {
+                let filePlayer = fileData[i];
+                let player = getPlayerDataByUUID(UUID, fileData[i].USERNAME);
+                if (player.playerData.NOTE == "") player.playerData.NOTE = filePlayer.NOTE;
+                if (!player.playerData.DODGE) {
+                    player.playerData.DODGE = filePlayer.DODGE;
+                    player.playerData.DODGELENGTH = filePlayer.DODGELENGTH;
+                    player.playerData.DODGEDATE = filePlayer.DODGEDATE;
+                }
+                if (player.playerData.SSPB > filePlayer.SSPB) player.playerData.SSPB = filePlayer.SSPB;
+                if (player.playerData.TERMSPB > filePlayer.TERMSPB) player.playerData.TERMSPB = filePlayer.TERMSPB;
+                if (player.playerData.RUNPB > filePlayer.RUNPB) player.playerData.RUNPB = filePlayer.RUNPB;
+                if (player.playerData.CAMPPB > filePlayer.CAMPPB) player.playerData.CAMPPB = filePlayer.CAMPPB;
+                player.save();
+            } else {
+                new PlayerObject(fileData[i].UUID, fileData[i].USERNAME, fileData[i].NOTE, fileData[i].DODGE, fileData[i].DODGELENGTH, fileData[i].DODGEDATE, fileData[i].NUMRUNS, fileData[i].LASTSESSION, fileData[i].DEATHS, fileData[i].AVGSSTIME, fileData[i].AVGSSTIMEN, fileData[i].PRE4RATE, fileData[i].PRE4RATEN, fileData[i].EE3RATE, fileData[i].EE3RATEN, fileData[i].AVGRUNTIME, fileData[i].AVGBR, fileData[i].AVGBRN, fileData[i].AVGCAMP, fileData[i].AVGCAMPN, fileData[i].AVGTERMS, fileData[i].AVGTERMSN, fileData[i].SSPB, fileData[i].TERMSPB, fileData[i].RUNPB, fileData[i].CAMPPB, fileData[i].SSTRACKING, fileData[i].TERMSTRACKING, fileData[i].BRTRACKING, fileData[i].RUNTIMETRACKING);
+            }
+        }
+    } catch(e) {
+        console.log(e);
+    }
 }

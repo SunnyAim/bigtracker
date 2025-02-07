@@ -135,7 +135,7 @@ const getPartyMembers = () => {
             // Failed to find: [youtube]
             if (name.includes("[youtube]")) {
                 name = line?.split(" ")?.[2]?.toLowerCase();
-            }
+            } 
 
             if (!namesToUUID[name]) {
                 getPlayerDataByName(name);
@@ -474,6 +474,7 @@ register("tick", () => {
         }
 
         if (Date.now() - executeQueue[i][2] > 5000) {
+            if (executeQueue[i][0]?.replace(" ", "") == "") continue;
             ChatLib.chat(`&7Failed to find: &f${executeQueue[i][0]}`);
             // console.log(`failed to get player ${executeQueue[i][0]}, task: ${executeQueue[i][1]}`);
             executeQueue = executeQueue.splice(i, i);
@@ -567,12 +568,12 @@ const getSSTimes = () => {
         if (ssTime == 0.0) {
             continue;
         }
-        sortedSSTimes.push([player.playerData.USERNAME, ssTime, player.playerData.SSPB]);
+        sortedSSTimes.push([player.playerData.USERNAME, ssTime, player.playerData.SSPB, player.playerData.SSTRACKING.length]);
     }
 
     sortedSSTimes.sort((a,b) => a[1] - b[1]);
     sortedSSTimes.forEach(p => {
-        ChatLib.chat(`${p[0]}: ${p[1]} (${p[2]})`);
+        ChatLib.chat(`${p[0]}: ${p[1]} (${p[2]}) [${p[3]}]`);
     });
 }
 

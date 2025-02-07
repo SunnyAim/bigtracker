@@ -131,7 +131,7 @@ export default class PlayerObject {
             if (medSS < 13.0) medString += `&a${medSS}`;
             else if (medSS < 14.0) medString += `&e${medSS}`;
             else medString += `&c${medSS}`;
-            medString += " &7| &r";
+            medString += ` &7$[${this.playerData.SSTRACKING.length}] | &r`;
         }
 
         if (this.playerData.BRTRACKING.length != 0) {
@@ -140,7 +140,7 @@ export default class PlayerObject {
             if (medBR < 25.0) medString += `&a${medBR}`;
             else if (medBR < 32.0) medString += `&e${medBR}`;
             else medString += `&c${medBR}`;
-            medString += " &7| &r";
+            medString += ` &7$[${this.playerData.BRTRACKING.length}] | &r`;
         }
 
         if (this.playerData.CAMPSTRACKING.length != 0) {
@@ -149,7 +149,7 @@ export default class PlayerObject {
             if (medCamp < 66.0) medString += `&a${medCamp}`;
             else if (medCamp < 70.0) medString += `&e${medCamp}`;
             else medString += `&c${medCamp}`;
-            medString += " &7| &r";
+            medString += ` &7$[${this.playerData.CAMPSTRACKING.length}] | &r`;
         }
 
         if (this.playerData.TERMSTRACKING.length != 0) {
@@ -158,7 +158,7 @@ export default class PlayerObject {
             if (medTerms < 45.0) medString += `&a${medTerms}`;
             else if (medTerms < 52.0) medString += `&e${medTerms}`;
             else medString += `&c${medTerms}`;
-            medString += " &7| &r";
+            medString += ` &7$[${this.playerData.TERMSTRACKING.length}] | &r`;
         }
 
         if (this.playerData.RUNTIMETRACKING.length != 0) {
@@ -168,7 +168,7 @@ export default class PlayerObject {
             if (runTimeMed < 330.0) medString += `&a${formattedRuntime}`;
             else if (runTimeMed < 360.0) medString += `&e${formattedRuntime}`;
             else medString += `&c${formattedRuntime}`;
-            medString += " &7| &r";
+            medString += ` &7$[${this.playerData.RUNTIMETRACKING.length}] | &r`;
         }
 
 

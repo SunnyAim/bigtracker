@@ -101,7 +101,7 @@ export default class PlayerObject {
                 if (pbRun < 310) pbString += `&a`;
                 else if (pbRun < 330) pbString += `&e`;
                 else pbString += `&c`;
-                pbString += secondsToFormatted(pbRun);
+                pbString += PlayerObject.secondsToFormatted(pbRun);
                 pbString += " &7| &r";
             }
 
@@ -164,7 +164,7 @@ export default class PlayerObject {
         if (this.playerData.RUNTIMETRACKING.length != 0) {
             medString += `&fRUNTIME: `;
             let runTimeMed = parseFloat(this.getMedian("RUNTIMETRACKING"));
-            let formattedRuntime = secondsToFormatted(runTimeMed);
+            let formattedRuntime = PlayerObject.secondsToFormatted(runTimeMed);
             if (runTimeMed < 330.0) medString += `&a${formattedRuntime}`;
             else if (runTimeMed < 360.0) medString += `&e${formattedRuntime}`;
             else medString += `&c${formattedRuntime}`;

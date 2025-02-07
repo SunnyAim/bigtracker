@@ -188,6 +188,9 @@ register("packetReceived", (packet, event) => {
     }
     else if (text.match(/☠(.+)/) && Dungeon.inDungeon && !(text.includes(" Defeated ") || text.includes("reconnected.") || text.includes(" disconnected "))) {
         let name = text.split(" ")[2].toLowerCase();
+        if (text.includes("You ")) {
+            name = Player.getName();
+        }
         getPlayerDataByName(name);
 
         executeQueue.push([name, "DEATHS", Date.now()]);
@@ -408,7 +411,6 @@ register("tick", () => {
         if (i < 0 || i > executeQueue.length) continue;
         
         if (!executeQueue?.[i]?.[2]) {
-            // console.log("continuing at !executeQueue?.[i]?.[2]")
             continue;
         }
 
@@ -527,6 +529,7 @@ const exportData = () => {
     FileLib.write("./config/ChatTriggers/modules/bigtracker/export.json", JSON.stringify(allPlayerData), true);
     ChatLib.chat("&aExport Successful");
 }
+
 
 const importData = () => {
     if (!FileLib.exists("./config/ChatTriggers/modules/bigtracker/export.json")) {

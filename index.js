@@ -166,7 +166,6 @@ register("packetReceived", (packet, event) => {
     const chatComponent = packet.func_148915_c();
     const text = new String(chatComponent.func_150254_d().removeFormatting());
 
-    if (Object.keys(partyMembers)?.length == 0) return;
 
     if (text.match(/Party Finder > (.+) joined the dungeon group! .+/)) {
         const match = text.match(/Party Finder > (.+) joined the dungeon group! .+/);

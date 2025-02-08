@@ -166,6 +166,8 @@ register("packetReceived", (packet, event) => {
     const chatComponent = packet.func_148915_c();
     const text = new String(chatComponent.func_150254_d().removeFormatting());
 
+    if (Object.keys(partyMembers)?.length == 0) return;
+
     if (text.match(/Party Finder > (.+) joined the dungeon group! .+/)) {
         const match = text.match(/Party Finder > (.+) joined the dungeon group! .+/);
         const name = match[1].toLowerCase();
@@ -405,7 +407,7 @@ const printAll = () => {
 
 
 let executeQueue = [];
-register("tick", () => {
+register("step", () => {
     for (let i = 0; i < executeQueue.length; i++) {
         // console.log(`Attempting ${executeQueue?.[i]?.[1]} on ${executeQueue?.[i]?.[0]}`);
         if (i < 0 || i > executeQueue.length) continue;
@@ -481,7 +483,7 @@ register("tick", () => {
 
         executeQueue = executeQueue.splice(i, i);
     }
-});
+}).setFps(10);
 
 
 const commandHelp = () => {

@@ -84,6 +84,7 @@ const getPlayerDataByName = (NAME, makeRequest=true) => {
             const UUID = JSON.parse(res).id;
             NAME = JSON.parse(res).name?.toLowerCase();
             namesToUUID[NAME] = UUID;
+            tabCompleteNames.add(NAME);
             return getPlayerDataByUUID(UUID, NAME);
         }
     );
@@ -356,24 +357,38 @@ register("command", (...args) => {
             executeQueue.add(args[0], "PRINTPLAYER");
         }
     }
-}).setTabCompletions( (args) => { 
-    if (Dungeon.inDungeon && !gotAllMembers) getPartyMembers();
+}).setTabCompletions( (args) => {
     let name = "";
-    let names = Object.keys(namesToUUID);
 
-    if (args.length == 0) {
-        return names;
+    if (args.length == 0 || args[0] == "") {
+        return [];
     }
 
     let namesThatStartWith = [];
 
-    for (let i = 0; i < names.length; i++) {
-        if (names[i].startsWith(args[args.length-1])) {
-            namesThatStartWith.push(names[i]);
+    tabCompleteNames.forEach(i => {
+        if (i.startsWith(args[args.length - 1])) {
+            namesThatStartWith.push(i);
         }
-    }
+    })
+
     return namesThatStartWith;
 }).setName("big");
+
+const tabCompleteNames = new Set();
+
+const getFileTabCompleteNames = () => {
+    new Thread( () => {
+        let fileNames = new File("./config/ChatTriggers/modules/bigtracker/players").list();
+        for (let i = 0; i < fileNames.length; i++) {
+            let player = new PlayerObject(fileNames[i].replace(".json", ""));
+            tabCompleteNames.add(player.playerData.USERNAME);
+        }
+    }).start();
+}
+
+register("gameLoad", () => getFileTabCompleteNames());
+
 
 const printAll = () => {
     let fileNames = new File("./config/ChatTriggers/modules/bigtracker/players").list();
@@ -598,3 +613,4 @@ const importData = () => {
         console.log(e);
     }
 }
+

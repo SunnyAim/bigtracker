@@ -179,7 +179,7 @@ register("packetReceived", (packet, event) => {
         const time = (parseInt(match[1]) * 60) + parseInt(match[2]);
 
         for (let name of Object.keys(partyMembers)) {
-            console.log(`end of run ${name} : updateMovingAVG : ${partyMembers[name]}`);
+            // console.log(`end of run ${name} : updateMovingAVG : ${partyMembers[name]}`);
             executeQueue.add(name, "updateMovingAVG", ["AVGRUNTIME", "NUMRUNS", time]);
         }
     }
@@ -356,8 +356,24 @@ register("command", (...args) => {
             executeQueue.add(args[0], "PRINTPLAYER");
         }
     }
-}).setName("big");
+}).setTabCompletions( (args) => { 
+    if (Dungeon.inDungeon && !gotAllMembers) getPartyMembers();
+    let name = "";
+    let names = Object.keys(namesToUUID);
 
+    if (args.length == 0) {
+        return names;
+    }
+
+    let namesThatStartWith = [];
+
+    for (let i = 0; i < names.length; i++) {
+        if (names[i].startsWith(args[args.length-1])) {
+            namesThatStartWith.push(names[i]);
+        }
+    }
+    return namesThatStartWith;
+}).setName("big");
 
 const printAll = () => {
     let fileNames = new File("./config/ChatTriggers/modules/bigtracker/players").list();
@@ -392,21 +408,21 @@ class ExecuteQueue {
     }
 
     do() {
-        if (this.toDo.size() !== 0) console.log(`len ${this.toDo.size()} ${this.toDo.toString()}`);
+        // if (this.toDo.size() !== 0) console.log(`len ${this.toDo.size()} ${this.toDo.toString()}`);
         for (let i = 0; i < this.toDo.size(); i++) {
             let current = this.toDo.get(i);
             let player = getPlayerDataByName(current.name, false);
 
             if (!player) {
                 if (Date.now() - current.time > 5000) {
-                    console.log(`failed to get ${current.name}`);
+                    // console.log(`failed to get ${current.name}`);
                     this.toDo.remove(i);
                     i--;
                 }
                 continue;
             }
 
-            console.log(`switching ${current.type} : ${current.name}`)
+            // console.log(`switching ${current.type} : ${current.name}`)
             switch (current.type) {
                 case "dodge": {
                     player.dodge(current.extra?.[0], current.extra?.[1]);
@@ -417,7 +433,7 @@ class ExecuteQueue {
                     break;
                 }
                 case "updateMovingAVG": {
-                    console.log(`calling ${current.extra[0]} | ${current.extra[1]} | ${current.extra[2]}`)
+                    // console.log(`calling ${current.extra[0]} | ${current.extra[1]} | ${current.extra[2]}`)
                     player.updateMovingAVG(current.extra[0], current.extra[1], current.extra[2]);
                     break;
                 }
@@ -467,7 +483,7 @@ class ExecuteQueue {
             if (includes) break;
         }
         // let includes = this.toDo.some(i => i.same(temp));
-        console.log(`includes ${name} ${type} : ${includes}`);
+        // console.log(`includes ${name} ${type} : ${includes}`);
         if (!includes) {
             this.toDo.add(temp);
         }

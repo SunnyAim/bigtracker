@@ -113,6 +113,7 @@ let termsStart = 0;
 let ssDone = false;
 let pre4Done = false;
 let runDone = false;
+let soloRun = false;
 
 register("worldLoad", () => {
     partyMembers = {};
@@ -123,6 +124,7 @@ register("worldLoad", () => {
     ssDone = false;
     pre4Done = false;
     runDone = false;
+    soloRun = false;
 });
 
 
@@ -134,8 +136,11 @@ const getPartyMembers = () => {
     if (!Scoreboard || Scoreboard?.length === 0) return;
 
     let numMembers = parseInt(Scoreboard[0]?.charAt(28));
+    // let numMembers = Scoreboard?.[0].match(/\s+Party \((\d)\)/)?.[1];
     let deadPlayer = false;
     let tempPartyMembers = {};
+
+    soloRun = numMembers == 1;
 
     for (let i = 1; i < Scoreboard.length; i++) {
         if (Object.keys(tempPartyMembers).length === numMembers || Scoreboard[i].includes("Player Stats")) {
@@ -179,6 +184,7 @@ const getPartyMembers = () => {
 
 register("packetReceived", (packet, event) => {
     if (packet.func_148916_d()) return;
+    if (soloRun) return;
 
     const chatComponent = packet.func_148915_c();
     const text = new String(chatComponent.func_150254_d().removeFormatting());

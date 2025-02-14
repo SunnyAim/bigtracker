@@ -136,7 +136,6 @@ const getPartyMembers = () => {
     if (!Scoreboard || Scoreboard?.length === 0) return;
 
     let numMembers = parseInt(Scoreboard[0]?.charAt(28));
-    // let numMembers = Scoreboard?.[0].match(/\s+Party \((\d)\)/)?.[1];
     let deadPlayer = false;
     let tempPartyMembers = {};
 
@@ -314,10 +313,10 @@ register("command", (...args) => {
             break;
         }
         case "import":
-            importData();
+            importData(args?.[1]);
             break;
         case "export":
-            exportData();
+            exportData(args?.[1]);
             break;
         case "autokick": {
             data.autoKick = !data.autoKick;
@@ -480,20 +479,22 @@ const getSSTimes = () => {
 }
 
 
-const exportData = () => {
+const exportData = (filename="export") => {
     let fileNames = new File("./config/ChatTriggers/modules/bigtracker/players").list();
     const allPlayerData = [];
     for (let i = 0; i < fileNames.length; i++) {
         let player = new PlayerObject(fileNames[i].replace(".json", ""));
         allPlayerData.push(player.playerData);
     }
-    FileLib.write("./config/ChatTriggers/modules/bigtracker/export.json", JSON.stringify(allPlayerData), true);
-    ChatLib.chat("&aExport Successful");
+    FileLib.write(`./config/ChatTriggers/modules/bigtracker/${filename}.json`, JSON.stringify(allPlayerData), true);
+    ChatLib.chat(`&aSuccessfully exported to ${filename}.json`);
 }
 
-const importData = () => {
-    if (!FileLib.exists("./config/ChatTriggers/modules/bigtracker/export.json")) {
+const importData = (filename="export") => {
+    if (filename.includes(".json")) filename = filename.replace(".json", "");
+    if (!FileLib.exists(`./config/ChatTriggers/modules/bigtracker/${filename}.json`)) {
         ChatLib.chat("To import, bring a export.json into your bigtracker folder then run this command.");
+        ChatLib.chat("Alternatively, if the file has a different name then /big import filename");
         return;
     }
     try {

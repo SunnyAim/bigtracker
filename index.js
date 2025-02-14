@@ -75,14 +75,16 @@ const getPlayerDataByUUID = (UUID, NAME) => {
 }
 
 
-const getPlayerDataByName = (NAME, makeRequest=true) => {
+const getPlayerDataByName = (NAME, task=false, extra=[]) => {
     NAME = NAME.toLowerCase();
 
     if (namesToUUID[NAME]) {
-        return getPlayerDataByUUID(namesToUUID[NAME], NAME);
+        let player = getPlayerDataByUUID(namesToUUID[NAME], NAME);
+        if (task) {
+            player.do(task, extra);
+        }
+        return player;
     }
-
-    if (!makeRequest) return;
 
     request(`https://api.mojang.com/users/profiles/minecraft/${NAME}`)
         .then(function(res) {
@@ -90,7 +92,11 @@ const getPlayerDataByName = (NAME, makeRequest=true) => {
             NAME = JSON.parse(res).name?.toLowerCase();
             namesToUUID[NAME] = UUID;
             tabCompleteNames.add(NAME);
-            return getPlayerDataByUUID(UUID, NAME);
+            let player = getPlayerDataByUUID(UUID, NAME);
+            if (task) {
+                player.do(task, extra);
+            }
+            return player; 
         }
     );
 }
@@ -176,7 +182,7 @@ register("packetReceived", (packet, event) => {
 
     if (text.match(/Party Finder > (.+) joined the dungeon group! .+/)) {
         const match = text.match(/Party Finder > (.+) joined the dungeon group! .+/);
-        executeQueue.add(match[1], "check");
+        getPlayerDataByName(match[1], "check");
     }
     else if (text == "[BOSS] Goldor: Who dares trespass into my domain?") {
         termsStart = Date.now();
@@ -188,8 +194,7 @@ register("packetReceived", (packet, event) => {
         const time = (parseInt(match[1]) * 60) + parseInt(match[2]);
 
         for (let name of Object.keys(partyMembers)) {
-            // console.log(`end of run ${name} : updateMovingAVG : ${partyMembers[name]}`);
-            executeQueue.add(name, "updateMovingAVG", ["AVGRUNTIME", "NUMRUNS", time]);
+            getPlayerDataByName(name, "updateMovingAVG", ["AVGRUNTIME", "NUMRUNS", time]);
         }
         runDone = true;
     }
@@ -198,7 +203,7 @@ register("packetReceived", (packet, event) => {
         if (text.includes(" You ")) name = Player.getName();
         if (name.trim() == "") return;
 
-        executeQueue.add(name, "DEATHS");
+        getPlayerDataByName(name, "DEATHS");
     }
     else if (text.startsWith("[BOSS] The Watcher:")) {
         if (campStart === 0) {
@@ -219,7 +224,7 @@ register("packetReceived", (packet, event) => {
                     continue;
                 }
 
-                executeQueue.add(name, "updateMovingAVG", ["AVGBR", "AVGBRN", brTime]);
+                getPlayerDataByName(name, "updateMovingAVG", ["AVGBR", "AVGBRN", brTime]);
             }
         }
 
@@ -238,7 +243,7 @@ register("packetReceived", (packet, event) => {
                 if (partyMembers[name] !== "Mage") {
                     continue;
                 }
-                executeQueue.add(name, "updateMovingAVG", ["AVGCAMP", "AVGCAMPN", campTime]);
+                getPlayerDataByName(name, "updateMovingAVG", ["AVGCAMP", "AVGCAMPN", campTime]);
             }
         }
     }
@@ -253,7 +258,7 @@ register("packetReceived", (packet, event) => {
         }
 
         for (let name of Object.keys(partyMembers)) {
-            executeQueue.add(name, "updateMovingAVG", ["AVGTERMS", "AVGTERMSN", termsTime]);
+            getPlayerDataByName(name, "updateMovingAVG", ["AVGTERMS", "AVGTERMSN", termsTime]);
         }
     }
     else if (text == "[NPC] Mort: Here, I found this map when I first entered the dungeon.") {
@@ -276,13 +281,13 @@ register("packetReceived", (packet, event) => {
             if (completedIn != 17) ChatLib.chat(`SS Completed in ${completedIn}`);
 
             ssDone = true;
-            executeQueue.add(name, "updateMovingAVG", ["AVGSSTIME", "AVGSSTIMEN", completedIn]);
+            getPlayerDataByName(name, "updateMovingAVG", ["AVGSSTIME", "AVGSSTIMEN", completedIn]);
         }
 
         if (!pre4Done && partyMembers[name] == "Berserk") {
             if (completedIn != 17) ChatLib.chat(`Pre4 Completed in ${completedIn}`);
             pre4Done = true;
-            executeQueue.add(name, "PRE4", completedIn);
+            getPlayerDataByName(name, "PRE4", completedIn);
         }
     }
 }).setFilteredClass(S02PacketChat);
@@ -325,7 +330,7 @@ register("command", (...args) => {
                 ChatLib.chat(`/big ${args[0]} username`);
                 return;
             }
-            executeQueue.add(args[1], "PRINTPLAYER");
+            getPlayerDataByName(args[1], "PRINTPLAYER");
             break;
         }
         case "dodge": {
@@ -344,7 +349,7 @@ register("command", (...args) => {
                 return;
             }
 
-            executeQueue.add(username, "dodge", [length, note]);
+            getPlayerDataByName(username, "dodge", [length, note]);
             break;
         }
         case "sstimes": {
@@ -359,11 +364,11 @@ register("command", (...args) => {
             break;
         }
         case "note": {
-            executeQueue.add(args[1], "NOTE", args);
+            getPlayerDataByName(args[1], "NOTE", args);
             break;
         }
         default: {
-            executeQueue.add(args[0], "PRINTPLAYER");
+            getPlayerDataByName(args[0], "PRINTPLAYER");
         }
     }
 }).setTabCompletions( (args) => {
@@ -379,7 +384,7 @@ register("command", (...args) => {
         if (i.startsWith(args[args.length - 1])) {
             namesThatStartWith.push(i);
         }
-    })
+    });
 
     return namesThatStartWith;
 }).setName("big");
@@ -424,118 +429,6 @@ const printAll = () => {
         ChatLib.chat(playerString);
     }
 }
-
-
-class ExecuteQueue {
-    constructor() {
-        this.toDo = new ArrayList();
-    }
-
-    do() {
-        // if (this.toDo.size() !== 0) console.log(`len ${this.toDo.size()} ${this.toDo.toString()}`);
-        for (let i = 0; i < this.toDo.size(); i++) {
-            let current = this.toDo.get(i);
-            let player = getPlayerDataByName(current.name, false);
-
-            if (!player) {
-                if (Date.now() - current.time > 5000) {
-                    // console.log(`failed to get ${current.name}`);
-                    this.toDo.remove(i);
-                    i--;
-                }
-                continue;
-            }
-
-            // console.log(`switching ${current.type} : ${current.name}`)
-            switch (current.type) {
-                case "dodge": {
-                    player.dodge(current.extra?.[0], current.extra?.[1]);
-                    break;
-                }
-                case "check": {
-                    player.check(data.autoKick, data.sayReason);
-                    break;
-                }
-                case "updateMovingAVG": {
-                    // console.log(`calling ${current.extra[0]} | ${current.extra[1]} | ${current.extra[2]}`)
-                    player.updateMovingAVG(current.extra[0], current.extra[1], current.extra[2]);
-                    break;
-                }
-                case "DEATHS": {
-                    player.playerData.DEATHS += 1;
-                    player.save();
-                    break;
-                }
-                case "PRE4": {
-                    player.playerData.PRE4RATEN += 1;
-                    let completedIn = current.extra;
-                    if (completedIn < 17) {
-                        player.playerData.PRE4RATE += 1;
-                    }
-                    player.save();
-                    break;
-                }
-                case "PRINTPLAYER": {
-                    player.printPlayer();
-                    break;
-                }
-                case "NOTE": {
-                    let args = current.extra;
-                    if(args.length > 2) {
-                        let note = args?.splice(2)?.join(" ");
-                        player.playerData.NOTE = note;
-                        ChatLib.chat(`&b${current.name}`);
-                        ChatLib.chat(`&8Note &7>> &f${note}`);
-                    } else {
-                        player.playerData.NOTE = "";
-                        ChatLib.chat(`&9Cleared Note &7>> &f${current.name}`);
-                    }
-                    player.save();
-                    break;
-                }
-            }
-            this.toDo.remove(i);
-            i--;
-        }
-    }
-
-    add(name, type, extra=[]) {
-        let temp = new ExecuteQueue.toExecute(name, type, extra);
-        let includes = false;
-        for (let i = 0; i < this.toDo.size(); i++) {
-            includes = this.toDo.get(i).same(temp);
-            if (includes) break;
-        }
-
-        if (!includes) {
-            this.toDo.add(temp);
-        }
-    }
-
-
-    static toExecute = class {
-        constructor(name, type, extra=[]) {
-            getPlayerDataByName(name.toLowerCase());
-            this.name = name.toLowerCase();
-            this.type = type;
-            this.time = Date.now();
-            this.extra = extra;
-        }
-    
-        same(other) {
-            if (this.extra.length === 0) {
-                return this.name === other.name && this.type === other.type;
-            } else if (this.extra?.length !== 0 && other.extra?.length !== 0) {
-                return (this.name === other.name && this.type === other.type) && this.extra[0] === other.extra[0];
-            }
-            return false;
-        }
-    }
-}
-
-
-const executeQueue = new ExecuteQueue();
-register("step", () => executeQueue.do()).setFps(5);
 
 register("step", () => {
     if (!Dungeon.inDungeon || gotAllMembers) return;

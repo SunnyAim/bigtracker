@@ -43,6 +43,47 @@ export default class PlayerObject {
         this.save();
     }
 
+    do(task, extra=[]) {
+        switch (task) {
+            case "dodge":
+                this.dodge(extra?.[0], extra?.[1]);
+                break;
+            case "check":
+                this.check(extra[0], extra[1]);
+                break;
+            case "updateMovingAVG":
+                this.updateMovingAVG(extra[0], extra[1], extra[2]);
+                break;
+            case "DEATHS":
+                this.playerData.DEATHS += 1;
+                this.save();
+                break;
+            case "PRE4": {
+                this.playerData.PRE4RATEN += 1
+                if (extra < 17) {
+                    this.PRE4RATE += 1;
+                }
+                this.save();
+                break;
+            }
+            case "PRINTPLAYER":
+                this.printPlayer();
+                break;
+            case "NOTE":
+                if (extra.length > 2) {
+                    let note = extra?.splice(2)?.join(" ");
+                    this.playerData.NOTE  = note;
+                    ChatLib.chat(`&b${this.playerData.USERNAME}`);
+                    ChatLib.chat(`&8Note &7>> &f${note}`);
+                } else {
+                    this.playerData.NOTE = "";
+                    ChatLib.chat(`&9Cleared Note &7>> &f${this.playerData.USERNAME}`);
+                }
+                this.save();
+                break;
+        }
+    }
+
     save() {
         this.playerData.save();
     }

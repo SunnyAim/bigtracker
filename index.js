@@ -62,7 +62,12 @@ const namesToUUID = {};
 
 const getPlayerDataByUUID = (UUID, NAME) => {
     if (playerData[UUID]) {
-        return playerData[UUID];
+        let player = playerData[UUID];
+        if (player.playerData.USERNAME != NAME) {
+            ChatLib.chat(`${NAME} has changed its name from ${player.playerData.USERNAME}`);
+            player.playerData.USERNAME = NAME;
+        }
+        return player;
     }
 
     playerData[UUID] = new PlayerObject(UUID, NAME.toLowerCase());
@@ -501,8 +506,7 @@ class ExecuteQueue {
             includes = this.toDo.get(i).same(temp);
             if (includes) break;
         }
-        // let includes = this.toDo.some(i => i.same(temp));
-        // console.log(`includes ${name} ${type} : ${includes}`);
+
         if (!includes) {
             this.toDo.add(temp);
         }

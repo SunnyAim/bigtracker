@@ -98,6 +98,7 @@ let campStart = 0;
 let termsStart = 0;
 let ssDone = false;
 let pre4Done = false;
+let runDone = false;
 
 register("worldLoad", () => {
     partyMembers = {};
@@ -107,6 +108,7 @@ register("worldLoad", () => {
     termsStart = 0;
     ssDone = false;
     pre4Done = false;
+    runDone = false;
 });
 
 
@@ -176,6 +178,7 @@ register("packetReceived", (packet, event) => {
         getPartyMembers();
     }
     else if (text.match(/\s+☠ Defeated Maxor, Storm, Goldor, and Necron in (\d+)m\s+(\d+)s/)) {
+        if (runDone) return;
         const match = text.match(/\s+☠ Defeated Maxor, Storm, Goldor, and Necron in (\d+)m\s+(\d+)s/);
         const time = (parseInt(match[1]) * 60) + parseInt(match[2]);
 
@@ -183,6 +186,7 @@ register("packetReceived", (packet, event) => {
             // console.log(`end of run ${name} : updateMovingAVG : ${partyMembers[name]}`);
             executeQueue.add(name, "updateMovingAVG", ["AVGRUNTIME", "NUMRUNS", time]);
         }
+        runDone = true;
     }
     else if (text.match(/☠(.+)/) && Dungeon.inDungeon && !(text.includes(" Defeated ") || text.includes("reconnected.") || text.includes(" disconnected "))) {
         let name = text.split(" ")[2].toLowerCase();

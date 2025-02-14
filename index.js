@@ -76,7 +76,10 @@ const getPlayerDataByUUID = (UUID, NAME) => {
 
 
 const getPlayerDataByName = (NAME, task=false, extra=[]) => {
-    NAME = NAME.toLowerCase();
+    NAME = NAME?.toLowerCase();
+    if (!NAME) {
+        return;
+    }
 
     if (namesToUUID[NAME]) {
         let player = getPlayerDataByUUID(namesToUUID[NAME], NAME);

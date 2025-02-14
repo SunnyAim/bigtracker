@@ -505,6 +505,7 @@ const importData = (filename="export") => {
             if (FileLib.exists(`./config/ChatTriggers/modules/bigtracker/players/${UUID}.json`)) {
                 let filePlayer = fileData[i];
                 let player = getPlayerDataByUUID(UUID, fileData[i].USERNAME);
+                tabCompleteNames.add(player.USERNAME);
                 if (player.playerData.NOTE == "") player.playerData.NOTE = filePlayer.NOTE;
                 if (!player.playerData.DODGE) {
                     player.playerData.DODGE = filePlayer.DODGE;

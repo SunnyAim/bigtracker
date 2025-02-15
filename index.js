@@ -357,7 +357,14 @@ register("command", (...args) => {
                 return;
             }
 
-            getPlayerDataByName(username, "dodge", [length, note]);
+            if (username == "party") {
+                for (let name of Object.keys(partyMembers)) {
+                    getPlayerDataByName(name, "dodge", [length, note]);
+                }
+            } else {
+                getPlayerDataByName(username, "dodge", [length, note]);
+            }
+            
             break;
         }
         case "sstimes": {

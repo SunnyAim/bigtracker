@@ -389,8 +389,8 @@ register("command", (...args) => {
 }).setTabCompletions( (args) => {
     let name = "";
 
-    if (args.length == 0 || args[0] == "") {
-        return [];
+    if (args.length == 0 || args[0]?.trim() == "") {
+        return tabCommands;
     }
 
     let namesThatStartWith = [];
@@ -403,6 +403,9 @@ register("command", (...args) => {
 
     return namesThatStartWith;
 }).setName("big");
+
+
+const tabCommands = ["dodge", "note", "help", "import", "export", "autokick", "sayreason", "get", "sstimes"];
 
 const tabCompleteNames = new Set();
 

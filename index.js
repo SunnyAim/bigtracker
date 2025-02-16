@@ -208,9 +208,13 @@ register("packetReceived", (packet, event) => {
     }
     else if (text.match(/☠(.+)/) && Dungeon.inDungeon && !(text.includes(" Defeated ") || text.includes("reconnected.") || text.includes(" disconnected "))) {
         let name = text.split(" ")[2].toLowerCase();
-        if (text.includes(" You ")) name = Player.getName();
+        if (text.includes(" You ")) name = Player.getName().toLowerCase();
         if (name.trim() == "") return;
 
+        if (termsStart != 0 && !pre4Done && partyMembers?.[name] == "Berserk") {
+            pre4Done = true;
+            getPlayerDataByName(name, "PRE4", 18);
+        }
         getPlayerDataByName(name, "DEATHS");
     }
     else if (text.startsWith("[BOSS] The Watcher:")) {

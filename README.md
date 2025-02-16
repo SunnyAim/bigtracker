@@ -3,4 +3,5 @@ tracks stats of people you play with in party finder. lets you dodge them if you
 
 ![image](https://github.com/user-attachments/assets/bc96198a-5e6b-4145-811d-ad62a8b67bed)
 
-![image](https://github.com/user-attachments/assets/6484faf0-1bdb-4379-a7d1-9c8af837ee51)
+![image](https://github.com/user-attachments/assets/67043f97-833e-43f8-9561-52f1f1cc92d7)
+

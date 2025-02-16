@@ -405,7 +405,7 @@ register("command", (...args) => {
 }).setName("big");
 
 
-const tabCommands = ["dodge", "note", "help", "import", "export", "autokick", "sayreason", "get", "sstimes"];
+const tabCommands = ["dodge", "note", "list", "help", "import", "export", "autokick", "sayreason", "get", "sstimes"];
 
 const tabCompleteNames = new Set();
 

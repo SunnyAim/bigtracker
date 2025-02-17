@@ -50,6 +50,8 @@ if (data.firstTime) {
     data.firstTime = false;
     data.save();
 
+    new PlayerObject("bf47793e04ca4a5d98fcdddb63448bdb", "Falcon_17", "", true);
+
     if (World.isLoaded()) {
         ChatLib.command("big help", true);
     }
@@ -401,7 +403,6 @@ register("command", (...args) => {
 
 
 const tabCommands = ["dodge", "note", "list", "help", "import", "export", "autokick", "sayreason", "get", "sstimes"];
-
 const tabCompleteNames = new Set();
 
 const getFileTabCompleteNames = () => {
@@ -442,6 +443,7 @@ const printAll = () => {
         ChatLib.chat(playerString);
     }
 }
+
 
 register("step", () => {
     if (!Dungeon.inDungeon || gotAllMembers) return;
@@ -494,6 +496,7 @@ const exportData = (filename="export") => {
     FileLib.write(`./config/ChatTriggers/modules/bigtracker/${filename}.json`, JSON.stringify(allPlayerData), true);
     ChatLib.chat(`&aSuccessfully exported to ${filename}.json`);
 }
+
 
 const importData = (filename="export") => {
     if (filename.includes(".json")) filename = filename.replace(".json", "");

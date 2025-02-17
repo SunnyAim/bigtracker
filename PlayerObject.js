@@ -49,7 +49,7 @@ export default class PlayerObject {
                 this.dodge(extra?.[0], extra?.[1]);
                 break;
             case "check":
-                this.check(extra[0], extra[1]);
+                this.check(extra[0], extra[1], extra[2]);
                 break;
             case "updateMovingAVG":
                 this.updateMovingAVG(extra[0], extra[1], extra[2]);
@@ -335,7 +335,7 @@ export default class PlayerObject {
         ChatLib.chat(dodgeStr);
     }
 
-    check(autokick=false, sayReason=false) {
+    check(autokick=false, sayReason=false, isLeader=false) {
         this.printPlayer();
         if(this.playerData.DODGE) {
             World.playSound("mob.horse.donkey.idle", 1, 1);
@@ -369,7 +369,7 @@ export default class PlayerObject {
 
             ChatLib.chat(`${this.playerData.USERNAME}${dodgeStr}`);
             
-            if(this.playerData.DODGE && autokick) {
+            if(this.playerData.DODGE && autokick && isLeader) {
                 if (sayReason) {
                     ChatLib.command(`pc ${this.playerData.USERNAME}${dodgeStr}`);
                 }

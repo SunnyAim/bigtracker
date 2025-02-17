@@ -116,6 +116,7 @@ let ssDone = false;
 let pre4Done = false;
 let runDone = false;
 let soloRun = false;
+let isLeader = false;
 
 register("worldLoad", () => {
     partyMembers = {};
@@ -127,6 +128,7 @@ register("worldLoad", () => {
     pre4Done = false;
     runDone = false;
     soloRun = false;
+    isLeader = false;
 });
 
 
@@ -180,7 +182,7 @@ register("packetReceived", (packet, event) => {
 
     if (text.match(/Party Finder > (.+) joined the dungeon group! .+/)) {
         const match = text.match(/Party Finder > (.+) joined the dungeon group! .+/);
-        getPlayerDataByName(match[1], "check");
+        getPlayerDataByName(match[1], "check", [data.autoKick, data.sayReason, isLeader]);
     }
     else if (text == "[BOSS] Goldor: Who dares trespass into my domain?") {
         termsStart = Date.now();
@@ -291,6 +293,9 @@ register("packetReceived", (packet, event) => {
             pre4Done = true;
             getPlayerDataByName(name, "PRE4", completedIn);
         }
+    }
+    else if (text == "Queueing your party...") {
+        isLeader = true;
     }
 }).setFilteredClass(S02PacketChat);
 

@@ -148,29 +148,17 @@ const getPartyMembers = () => {
 
         if (Scoreboard[i].includes("[")) {
             let line = Scoreboard[i].removeFormatting();
-            if(line?.includes("(DEAD)") || line?.includes("(EMPTY)")) {
+
+            // hopefully this still works for youtube ranks. it should.
+            // [LVL] ?youtube? name ? (Class/Dead ?LVL)
+            // /\[\d+\].* ([a-zA-Z0-9_]{3,16}) .*\((Archer|Mage|Tank|Berserk|Healer|DEAD|EMPTY).*\)/
+            let match = line.match(/\[\d+\].* ([a-zA-Z0-9_]{3,16}) .*\((Archer|Mage|Tank|Berserk|Healer|DEAD|EMPTY).*\)/);
+            let name = match[1]?.toLowerCase();
+            let playerClass = match[2]?.trim();
+
+            if (playerClass == "DEAD" || playerClass == "EMPTY") {
                 deadPlayer = true;
             }
-
-            let name = line?.split(" ")?.[1]?.toLowerCase();
-            // Failed to find: [youtube]
-            if (name.includes("[youtube]")) {
-                name = line?.split(" ")?.[2]?.toLowerCase();
-            } 
-
-            if (!namesToUUID[name]) {
-                getPlayerDataByName(name);
-            }
-            
-            let playerClass = "";
-            // console.log(line);
-
-            if (line.includes("(Healer")) playerClass = "Healer"
-            if (line.includes("(Archer")) playerClass = "Archer"
-            if (line.includes("(Mage")) playerClass = "Mage"
-            if (line.includes("(Tank")) playerClass = "Tank"
-            if (line.includes("(Berserk")) playerClass = "Berserk"
-
 
             tempPartyMembers[name] = playerClass;
         }
@@ -212,7 +200,7 @@ register("packetReceived", (packet, event) => {
         if (name.trim() == "") return;
 
         if (termsStart != 0 && !pre4Done && partyMembers?.[name] == "Berserk") {
-            pre4Done = true;
+            pre4Done = true; 
             getPlayerDataByName(name, "PRE4", 18);
         }
         getPlayerDataByName(name, "DEATHS");
@@ -363,6 +351,9 @@ register("command", (...args) => {
 
             if (username == "party") {
                 for (let name of Object.keys(partyMembers)) {
+                    if (name == Player.getName()?.toLowerCase()) {
+                        continue;
+                    }
                     getPlayerDataByName(name, "dodge", [length, note]);
                 }
             } else {

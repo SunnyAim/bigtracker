@@ -398,7 +398,7 @@ register("command", (...args) => {
     let namesThatStartWith = [];
 
     tabCompleteNames.forEach(i => {
-        if (i.startsWith(args[args.length - 1])) {
+        if (i.startsWith((args[args.length - 1])?.toLowerCase())) {
             namesThatStartWith.push(i);
         }
     });

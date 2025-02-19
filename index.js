@@ -157,8 +157,13 @@ const getPartyMembers = () => {
             // [LVL] ?youtube? name ? (Class/Dead ?LVL)
             // /\[\d+\].* ([a-zA-Z0-9_]{3,16}) .*\((Archer|Mage|Tank|Berserk|Healer|DEAD|EMPTY).*\)/
             let match = line.match(/\[\d+\].* ([a-zA-Z0-9_]{3,16}) .*\((Archer|Mage|Tank|Berserk|Healer|DEAD|EMPTY).*\)/);
-            let name = match[1]?.toLowerCase();
-            let playerClass = match[2]?.trim();
+            let name = match?.[1]?.toLowerCase();
+            let playerClass = match?.[2]?.trim();
+
+            if (!name || !playerClass) {
+                deadPlayer = true;
+                continue;
+            }
 
             if (playerClass == "DEAD" || playerClass == "EMPTY") {
                 deadPlayer = true;
@@ -170,6 +175,12 @@ const getPartyMembers = () => {
 
     gotAllMembers = !deadPlayer;
     partyMembers = tempPartyMembers;
+
+    // if (gotAllMembers) {
+        // for (let name of Object.keys(partyMembers)) {
+            // console.log(`${name}: ${partyMembers[name]}`)
+        // }
+    // }
 }
 
 
@@ -203,10 +214,10 @@ register("packetReceived", (packet, event) => {
         if (text.includes(" You ")) name = Player.getName().toLowerCase();
         if (name.trim() == "") return;
 
-        if (termsStart != 0 && !pre4Done && partyMembers?.[name] == "Berserk") {
-            pre4Done = true; 
-            getPlayerDataByName(name, "PRE4", 18);
-        }
+        // if (termsStart != 0 && !pre4Done && partyMembers?.[name] == "Berserk") {
+        //     pre4Done = true; 
+        //     getPlayerDataByName(name, "PRE4", 18);
+        // }
         getPlayerDataByName(name, "DEATHS");
     }
     else if (text.startsWith("[BOSS] The Watcher:")) {
@@ -291,6 +302,7 @@ register("packetReceived", (packet, event) => {
         if (!pre4Done && partyMembers[name] == "Berserk") {
             if (completedIn != 17) ChatLib.chat(`Pre4 Completed in ${completedIn}`);
             pre4Done = true;
+            console.log(`pre4done >> ${completedIn} ${name}`)
             getPlayerDataByName(name, "PRE4", completedIn);
         }
     }

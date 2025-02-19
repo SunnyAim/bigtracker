@@ -104,9 +104,9 @@ export default class PlayerObject {
                 timeLeft /= 60; // hours
                 timeLeft /= 24; // days
                 timeLeft = parseFloat( (this.playerData.DODGELENGTH - timeLeft).toFixed(1) );
-                playerString += `dodged; ${timeLeft} days remaining`;
+                playerString += `&7>> &bDodged&7; &f${timeLeft} days remaining`;
             } else {
-                playerString += `dodged`;
+                playerString += `&7>> &bDodged`;
             }
             ChatLib.chat(playerString);
         }
@@ -246,7 +246,7 @@ export default class PlayerObject {
     updateMovingAVG(TYPE, TYPEN, TIME, INCREMENT=true) {
         this.playerData[TYPEN] += 1;
         let newAvg = (this.playerData[TYPE] * (this.playerData[TYPEN] - 1) / this.playerData[TYPEN] + (TIME / this.playerData[TYPEN])).toFixed(2);
-        console.log(`updateMovingAVG >>> ${TYPE}: ${TIME}`);
+        // console.log(`updateMovingAVG >>> ${TYPE}: ${TIME}`);
         this.playerData[TYPE] = parseFloat(newAvg);
         this.save();
 

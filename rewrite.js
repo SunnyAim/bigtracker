@@ -9,6 +9,18 @@ const playerData = {};
 const namesToUUID = {};
 const tabCompleteNames = new Set();
 
+const data = new PogObject("temptracker", {
+    firstTime: true
+}, "settings.json");
+
+if (data.firstTime) {
+    data.firstTime = false;
+    data.save();
+
+    if (!FileLib.exists("./config/ChatTriggers/modules/temptracker/bigplayers")) {
+        new File("./config/ChatTriggers/modules/temptracker/bigplayers").mkdirs();
+    }
+}
 
 const getPlayerByName = (name, task=null, extra=null) => {
     name = name?.toLowerCase();
@@ -90,10 +102,6 @@ class ChatHandler {
                 let compMS = Date.now() - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.TERMS][0];
                 let compTicks = tick.getTotalTicks() - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.TERMS][1];
                 
-                if (compMS < 17000) {
-                    ChatLib.chat(`&7>> &fSS Completed in ${ (compMS / 1000).toFixed(2) } [${ (compTicks / 20).toFixed(2) }t]`); 
-                }
-                
                 getPlayerByName(name, BigPlayer.TaskType.UPDATE, [BigPlayer.TaskType.SS, compMS, compTicks]);
                 ChatHandler.dungeon.ssDone = true;
                 return;
@@ -128,7 +136,7 @@ class ChatHandler {
 
 class BigPlayer {
     constructor(UUID, username="") {
-        this.playerData = new PogObject("bigtracker/bigplayers", {
+        this.playerData = new PogObject("temptracker/bigplayers", {
             UUID: UUID,
             USERNAME: username?.toLowerCase()
         }, `${UUID}.json`);
@@ -145,6 +153,7 @@ class BigPlayer {
         UPDATE: "update",
         SS: "ss",
         PRE4: "pre4",
+        TERMS: "terms",
         RUNDONE: "rundone"
     });
 
@@ -157,7 +166,7 @@ class BigPlayer {
             case TaskType.CHECK:
                 break;
             case TaskType.UPDATE:
-                this.updateMovingAvg(extra[0], extra[1]);
+                this.updateTime(extra[0], extra[1], extra[2]);
                 break;
             case TaskType.PRE4:
                 this.pre4(extra);
@@ -165,22 +174,45 @@ class BigPlayer {
         }
     }
     
-    updateMovingAvg(updateType, compMS) {
-        let updateTypeN = updateType + "n";
-        let updateTypePB = updateType + "pb";
+    updateTime(updateType, compMS, compTicks) {
+        // update type MS, update type Ticks? have ms and tick pb? no moving avg anymore. track by array instead, last 30 runs.
 
-        if (!this.playerData[updateTypeN]) {
-            this.playerData[updateTypeN] = 1;
-            this.playerData[updateType] = compMS;
-            this.playerData[updateTypePB] = compMS;
+        if (!this.playerData?.[updateType]) {
+            this.playerData[updateType] = [[compMS, compTicks]];
+            this.playerData[updateType + "pb"] = [compMS, compTicks];
             this.save();
             return;
         }
-         
-        this.playerData[updateTypeN] += 1;
-        let newAvg = this.playerData[updateType] * (this.playerData[updateTypeN] - 1) / this.playerData[updateTypeN] + (compMS / this.playerData[updateTypeN]);
-        this.playerData[updateType] = newAvg;
-        this.save();
+
+        this.playerData[updateType].push([compMS, compTicks]);
+        if (this.playerData[updateType].length > 30) {
+            this.playerData[updateType].shift();
+        }
+
+        if ([BigPlayer.TaskType.SS, BigPlayer.TaskType.TERMS, BigPlayer.TaskType.RUNDONE].includes(updateType)) {
+            let avg = this.getAvgOfType(updateType);
+            ChatLib.chat(`&7> ${this.playerData.USERNAME} > &f${updateType} completed in ${(compMS / 1000).toFixed(2)} (${compTicks / 20}t) pb: [${(this.playerData[updateType + "pb"][0] / 1000).toFixed(2)}, ${this.playerData[updateType + "pb"][1] / 20}] avg: [${(avg[0] / 1000).toFixed(2)}, ${avg[1] / 20}]`);
+        }
+        
+        if (this.playerData[updateType + "pb"][0] > compMS) {
+            this.playerData[updateType + "pb"] = [compMS, compTicks];
+        }
+    }
+
+    getAvgOfType(updateType) {
+        if (!this.playerData?.[updateType]) {
+            return null;
+        }
+
+        let tempMSArr = this.playerData[updateType].map( (x) => x[0]).sort((a, b) => a - b);
+        let tempTickArr = this.playerData[updateType].map( (x) => x[1]).sort((a, b) => a - b);
+        
+        let half = Math.floor(tempMSArr.length / 2);
+
+        let tempMs = (tempMSArr.length % 2 ? tempMSArr[half] : (tempMSArr[half - 1] + tempMSArr[half]) / 2);
+        let tempTick = (tempTickArr.length % 2 ? tempTickArr[half] : (tempTickArr[half - 1] + tempTickArr[half]) / 2);
+
+        return [tempMs, tempTick];
     }
 
     pre4(extra) {
@@ -248,6 +280,25 @@ class DungeonRun {
 
     doSplit(type, or) {
         this.splits[or][type] = [Date.now(), tick.getTotalTicks()];
+        // start run -> nothing
+        // start camp -> update avg br for arch and mage
+        // end camp -> update avg camp for mage
+        // start terms -> nothing
+        // end terms -> update avg terms for everyone, maybe print splits/ticktime? idk
+        // end run -> nothing. not a thing here.
+
+        switch (or) {
+            case SplitType.START:
+                switch (type) {
+                    case SplitType.CAMP:
+                        break;
+                }
+                break;
+
+
+            case SplitType.END:
+                break;
+        }
     }
 
     endRun(time) {

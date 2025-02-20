@@ -392,6 +392,9 @@ register("command", (...args) => {
             printAll();
             break;
         }
+        case "resetallthegoddamnpre4s":
+            resetAllPre4();
+            break;
         case "note": {
             getPlayerDataByName(args[1], "NOTE", args);
             break;
@@ -419,7 +422,7 @@ register("command", (...args) => {
 }).setName("big");
 
 
-const tabCommands = ["dodge", "note", "list", "help", "import", "export", "autokick", "sayreason", "get", "sstimes"];
+const tabCommands = ["dodge", "note", "list", "help", "import", "export", "autokick", "sayreason", "get", "sstimes", "resetallthegoddamnpre4s"];
 const tabCompleteNames = new Set();
 
 const getFileTabCompleteNames = () => {
@@ -551,3 +554,18 @@ const importData = (filename="export") => {
     }
 }
 
+// temporary command because of previous pre 4 tracking bs
+// remove in like a week from 2/19
+const resetAllPre4 = () => {
+    let fileNames = new File("./config/ChatTriggers/modules/bigtracker/players").list();
+    for (let i = 0; i < fileNames.length; i++) {
+        let player = new PlayerObject(fileNames[i].replace(".json", ""));
+        if (player.playerData.PRE4RATEN == 0) {
+            continue;
+        }
+        player.playerData.PRE4RATE = 0;
+        player.playerData.PRE4RATEN = 0;
+        player.save();
+    }
+    ChatLib.chat(`&aSuccessfully reset all pre4 data`);
+}

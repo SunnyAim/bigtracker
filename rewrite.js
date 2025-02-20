@@ -87,9 +87,13 @@ class ChatHandler {
             }
 
             if (!ChatHandler.dungeon.ssDone && ChatHandler.dungeon.partyMembers[name] == "Healer") {
-                let compMS = Date.now() - ChatHandler.dungeon.splits["start"]["terms"][0];
-                let compTicks = tick.getTotalTicks() - ChatHandler.dungeon.splits["start"]["terms"][1];
-
+                let compMS = Date.now() - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.TERMS][0];
+                let compTicks = tick.getTotalTicks() - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.TERMS][1];
+                
+                if (compMS < 17000) {
+                    ChatLib.chat(`&7>> &fSS Completed in ${ (compMS / 1000).toFixed(2) } [${ (compTicks / 20).toFixed(2) }t]`); 
+                }
+                
                 getPlayerByName(name, BigPlayer.TaskType.UPDATE, [BigPlayer.TaskType.SS, compMS, compTicks]);
                 ChatHandler.dungeon.ssDone = true;
                 return;
@@ -124,7 +128,7 @@ class ChatHandler {
 
 class BigPlayer {
     constructor(UUID, username="") {
-        this.playerData = new PogObject("bigtracker/players", {
+        this.playerData = new PogObject("bigtracker/bigplayers", {
             UUID: UUID,
             USERNAME: username?.toLowerCase()
         }, `${UUID}.json`);
@@ -172,12 +176,11 @@ class BigPlayer {
             this.save();
             return;
         }
-        
+         
         this.playerData[updateTypeN] += 1;
-        let newAvg = (this.playerData[updateType] * (this.playerData[updateTypeN] - 1) / this.playerData[updateTypeN] + (compMS / this.playerData[updateTypeN])).toFixed(2);
-        newAvg = parseFloat(newAvg);
-
-        
+        let newAvg = this.playerData[updateType] * (this.playerData[updateTypeN] - 1) / this.playerData[updateTypeN] + (compMS / this.playerData[updateTypeN]);
+        this.playerData[updateType] = newAvg;
+        this.save();
     }
 
     pre4(extra) {
@@ -244,7 +247,7 @@ class DungeonRun {
     });
 
     doSplit(type, or) {
-        this.splits[or][type] = [Date.now(), totalTicks];
+        this.splits[or][type] = [Date.now(), tick.getTotalTicks()];
     }
 
     endRun(time) {
@@ -292,8 +295,8 @@ class DungeonRun {
                 tempPartyMembers[name] = playerClass;
             }
     
-        this.gotAllMembers = !deadPlayer;
-        this.partyMembers = tempPartyMembers;
+            this.gotAllMembers = !deadPlayer;
+            this.partyMembers = tempPartyMembers;
         }
     }
 }
@@ -301,7 +304,6 @@ class DungeonRun {
 
 register("packetReceived", (packet, event) => {
     if (packet.func_148916_d()) return;
-    if (DungeonRun) return;
 
     const chatComponent = packet.func_148915_c();
     const text = new String(chatComponent.func_150254_d().removeFormatting());

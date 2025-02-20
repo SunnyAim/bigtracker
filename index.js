@@ -214,10 +214,10 @@ register("packetReceived", (packet, event) => {
         if (text.includes(" You ")) name = Player.getName().toLowerCase();
         if (name.trim() == "") return;
 
-        // if (termsStart != 0 && !pre4Done && partyMembers?.[name] == "Berserk") {
-        //     pre4Done = true; 
-        //     getPlayerDataByName(name, "PRE4", 18);
-        // }
+        if (termsStart != 0 && !pre4Done && partyMembers?.[name] == "Berserk") {
+            pre4Done = true; 
+            getPlayerDataByName(name, "PRE4", 18);
+        }
         getPlayerDataByName(name, "DEATHS");
     }
     else if (text.startsWith("[BOSS] The Watcher:")) {

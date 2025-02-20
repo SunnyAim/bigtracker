@@ -61,7 +61,7 @@ export default class PlayerObject {
             case "PRE4": {
                 this.playerData.PRE4RATEN += 1
                 if (extra < 17) {
-                    this.PRE4RATE += 1;
+                    this.playerData.PRE4RATE += 1;
                 }
                 this.save();
                 break;

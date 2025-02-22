@@ -13,14 +13,19 @@ const data = new PogObject("temptracker", {
     firstTime: true
 }, "settings.json");
 
+const runData = new PogObject("temptracker", {}, "bigloot.json");
+
+
 if (data.firstTime) {
     data.firstTime = false;
     data.save();
+    runData.save();
 
     if (!FileLib.exists("./config/ChatTriggers/modules/temptracker/bigplayers")) {
         new File("./config/ChatTriggers/modules/temptracker/bigplayers").mkdirs();
     }
 }
+
 
 const getPlayerByName = (name, task=null, extra=null) => {
     name = name?.toLowerCase();
@@ -60,7 +65,7 @@ class ChatHandler {
     static runText(text) {
         if (text.match(/Party Finder > (.+) joined the dungeon group! .+/)) {
             const match = text.match(/Party Finder > (.+) joined the dungeon group! .+/);
-            getPlayerDataByName(match[1], BigPlayer.TaskType.CHECK);
+            getPlayerByName(match[1], BigPlayer.TaskType.CHECK);
             return;
         }
 
@@ -108,8 +113,8 @@ class ChatHandler {
             }
 
             if (!ChatHandler.dungeon.pre4Done && ChatHandler.dungeon.partyMembers[name] == "Berserk") {
-                getPlayerByName(name, BigPlayer.TaskType.PRE4, true);
                 ChatHandler.dungeon.pre4Done = true;
+                getPlayerByName(name, BigPlayer.TaskType.PRE4, true);
                 return;
             }
         }
@@ -119,16 +124,73 @@ class ChatHandler {
             return;
         }
 
-        if (text.match(/\s+☠ Defeated Maxor, Storm, Goldor, and Necron in (\d+)m\s+(\d+)s/)) {
+        // yes this is meant to be separate and before the M7 specific one
+        if (text.match(/\s+☠ Defeated (.+) in (\d+)m\s+(\d+)s/)) {
             if (ChatHandler.dungeon.runDone) {
                 return;
             }
 
-            let match = text.match(/\s+☠ Defeated Maxor, Storm, Goldor, and Necron in (\d+)m\s+(\d+)s/);
-            let time = (parseInt(match[1]) * 60) + parseInt(match[2]);
+            let match = text.match(/\s+☠ Defeated (.+) in (\d+)m\s+(\d+)s/);
+            let time = (parseInt(match[2]) * 60) + parseInt(match[3]);
+            // let numPlayers = ChatHandler.dungeon.numPartyMembers;
 
-            ChatHandler.dungeon.endRun(time);
+
+        }
+
+        if (text.match(/\s+☠ Defeated (.+) in (\d+)m\s+(\d+)s/)) {
+            if (ChatHandler.dungeon.runDone) {
+                return;
+            }
+
+            let match = text.match(/\s+☠ Defeated (.+) in (\d+)m\s+(\d+)s/);
+            let time = (parseInt(match[2]) * 60) + parseInt(match[3]);
+            let nPartyMembers = ChatHandler.dungeon.numPartyMembers;
+
+            if (!runData?.[match[1]]) {
+                runData[match[1]] = {};
+            }
+
+            if (!runData[match[1]]?.[nPartyMembers]) {
+                runData[match[1]][nPartyMembers] = {
+                    fastest: time,
+                    avg: time,
+                    slowest: time,
+                    num: 1
+                }
+            } else {
+                let temp = runData[match[1]][nPartyMembers];
+                if (time < temp.fastest) {
+                    temp.fastest = time;
+                }
+                if (time > temp.slowest) {
+                    temp.slowest = time;
+                }
+                temp.avg = Utils.calcMovingAvg(temp.avg, temp.num);
+                temp.num += 1;
+                runData[match[1]][nPartyMembers] = temp;
+            }
+
+            runData.save();
+
+            if (match[1] == "Maxor, Storm, Goldor, and Necron") {
+                ChatHandler.dungeon.endRun(time);
+            }
+
+            ChatHandler.dungeon.runDone = true;
             return;
+        }
+
+        if (text.match(/☠(.+)/) && !(text.includes(" Defeated ") || text.includes("reconnected.") || text.includes(" disconnected "))) {
+            let name = text.split(" ")[2].toLowerCase();
+            if (text.includes(" You ")) name = Player.getName().toLowerCase();
+            if (name.trim() == "") return;
+        
+            if (!ChatHandler.dungeon.pre4Done && ChatHandler.dungeon.splits[DungeonRun.SplitType.START]?.[DungeonRun.SplitType.TERMS] && partyMembers?.[name] == "Berserk") {
+                ChatHandler.dungeon.pre4Done = true; 
+                getPlayerByName(name, BigPlayer.TaskType.PRE4, false);
+            }
+            
+            getPlayerByName(name, BigPlayer.TaskType.DEATH);
         }
     }
 }
@@ -154,7 +216,8 @@ class BigPlayer {
         SS: "ss",
         PRE4: "pre4",
         TERMS: "terms",
-        RUNDONE: "rundone"
+        RUNDONE: "rundone",
+        DEATH: "death"
     });
 
     doTask(task=null, extra=null) {
@@ -163,13 +226,20 @@ class BigPlayer {
         }
 
         switch (task) {
-            case TaskType.CHECK:
+            case BigPlayer.TaskType.CHECK:
                 break;
-            case TaskType.UPDATE:
+            case BigPlayer.TaskType.UPDATE:
                 this.updateTime(extra[0], extra[1], extra[2]);
                 break;
-            case TaskType.PRE4:
+            case BigPlayer.TaskType.PRE4:
                 this.pre4(extra);
+                break;
+            case BigPlayer.TaskType.DEATH:
+                if (!this.playerData?.["DEATHS"]) {
+                    this.playerData["DEATHS"] = 0;
+                }
+                this.playerData["DEATHS"] += 1;
+                this.save();
                 break;
         }
     }
@@ -302,8 +372,6 @@ class DungeonRun {
     }
 
     endRun(time) {
-        ChatHandler.dungeon.runDone = true;
-
         for (let name of Object.keys(this.partyMembers)) {
             getPlayerByName(name, BigPlayer.TaskType.RUNDONE, time);
         }
@@ -349,6 +417,13 @@ class DungeonRun {
             this.gotAllMembers = !deadPlayer;
             this.partyMembers = tempPartyMembers;
         }
+    }
+}
+
+
+class Utils {
+    static calcMovingAvg = (t, n) => {
+        return t * n / (n + 1) + (t / (n + 1));
     }
 }
 

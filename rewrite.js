@@ -3,8 +3,8 @@ import request from "../requestV2";
 
 const S02PacketChat = Java.type("net.minecraft.network.play.server.S02PacketChat");
 const S32PacketConfirmTransaction = Java.type("net.minecraft.network.play.server.S32PacketConfirmTransaction");
+const File = Java.type("java.io.File");
 
-const tick = new OnTick();
 const playerData = {};
 const namesToUUID = {};
 const tabCompleteNames = new Set();
@@ -124,19 +124,6 @@ class ChatHandler {
             return;
         }
 
-        // yes this is meant to be separate and before the M7 specific one
-        if (text.match(/\s+☠ Defeated (.+) in (\d+)m\s+(\d+)s/)) {
-            if (ChatHandler.dungeon.runDone) {
-                return;
-            }
-
-            let match = text.match(/\s+☠ Defeated (.+) in (\d+)m\s+(\d+)s/);
-            let time = (parseInt(match[2]) * 60) + parseInt(match[3]);
-            // let numPlayers = ChatHandler.dungeon.numPartyMembers;
-
-
-        }
-
         if (text.match(/\s+☠ Defeated (.+) in (\d+)m\s+(\d+)s/)) {
             if (ChatHandler.dungeon.runDone) {
                 return;
@@ -145,20 +132,27 @@ class ChatHandler {
             let match = text.match(/\s+☠ Defeated (.+) in (\d+)m\s+(\d+)s/);
             let time = (parseInt(match[2]) * 60) + parseInt(match[3]);
             let nPartyMembers = ChatHandler.dungeon.numPartyMembers;
+            let scoreboardFloor = Utils.findScoreboardFloor();
+            let t = scoreboardFloor[0];
+            let f = scoreboardFloor[1];
 
-            if (!runData?.[match[1]]) {
-                runData[match[1]] = {};
+            if (!runData?.[t]) {
+                runData[t] = {};
             }
 
-            if (!runData[match[1]]?.[nPartyMembers]) {
-                runData[match[1]][nPartyMembers] = {
+            if (!runData[t]?.[f]) {
+                runData[t][f] = {};
+            }
+
+            if (!runData[t][f]?.[nPartyMembers]) {
+                runData[t][f][nPartyMembers] = {
                     fastest: time,
                     avg: time,
                     slowest: time,
                     num: 1
                 }
             } else {
-                let temp = runData[match[1]][nPartyMembers];
+                let temp = runData[t][f][nPartyMembers];
                 if (time < temp.fastest) {
                     temp.fastest = time;
                 }
@@ -167,12 +161,12 @@ class ChatHandler {
                 }
                 temp.avg = Utils.calcMovingAvg(temp.avg, temp.num);
                 temp.num += 1;
-                runData[match[1]][nPartyMembers] = temp;
+                runData[t][f][nPartyMembers] = temp;
             }
 
             runData.save();
 
-            if (match[1] == "Maxor, Storm, Goldor, and Necron") {
+            if (f == 7) {
                 ChatHandler.dungeon.endRun(time);
             }
 
@@ -425,7 +419,37 @@ class Utils {
     static calcMovingAvg = (t, n) => {
         return t * n / (n + 1) + (t / (n + 1));
     }
+
+    static msgToFloor = {
+        "Maxor, Storm, Goldor, and Necron": 7,
+        "Sadan": 6,
+        "Livid": 5,
+        "Thorn": 4,
+        "The Professor": 3,
+        "Scarf": 2,
+        "Bonzo": 1,
+        "The Watcher": 0
+    }
+
+    static findScoreboardFloor() {
+        let board = Scoreboard.getLines();
+        
+        for (let i = 0; i < board.length; i++) {
+            let line = board[i].getName().removeFormatting();
+            let match = line.match(/.+ \((M|F)(\d)\)/);
+            if (!match?.[1]) {
+                if (line.includes("(E)")) {
+                    return ["F", 0];
+                }
+                continue;
+            }
+            return [match[1], parseInt(match[2])];
+        }
+    }
 }
+
+
+const tick = new OnTick();
 
 
 register("packetReceived", (packet, event) => {
@@ -441,3 +465,80 @@ register("packetReceived", (packet, event) => {
 register("packetReceived", (packet, event) => {
     tick.do();
 }).setFilteredClass(S32PacketConfirmTransaction);
+
+
+class BigCommand {
+    static tabCommands = ["floorstats"];
+
+    static help = () => {
+        
+    }
+
+    static floorStats = (args) => {
+        if (!args?.[1]) {
+            ChatLib.chat("ex: /big floorstats m7");
+            return;
+        }
+
+        let T = args[1].charAt(0).toUpperCase();
+        let F = parseInt(args[1].charAt(1));
+        let numPlayers = 5;
+        if (!(!args?.[2])) {
+            numPlayers = parseInt(args[2]);
+        }
+
+        if (NaN(F) || NaN(numPlayers)) {
+            ChatLib.chat("ex: /big floorstats m7 2");
+            return;
+        }
+
+        let temp = runData?.[T]?.[F]?.[numPlayers];
+        
+        if (!temp) {
+            ChatLib.chat(`Data not found for ${T} ${F} ${numPlayers}`);
+            return;
+        }
+
+        ChatLib.chat(`Stats for ${T}${F} with ${numPlayers} players`);
+        ChatLib.chat(`Runs: ${temp.num}`);
+        ChatLib.chat(`Fastest Run: ${Utils.secondsToFormatted(temp.fastest)}`);
+        ChatLib.chat(`Average Run: ${Utils.secondsToFormatted(temp.avg)}`);
+        ChatLib.chat(`Slowest Run: ${Utils.secondsToFormatted(temp.slowest)}`);
+    }
+
+    static tabCompletion = (args) => {
+        let name = "";
+
+        if (args.length == 0 || args?.[0]?.trim() == "") {
+            return BigCommand.tabCommands;
+        }
+        
+        let namesThatStartWith = [];
+    
+        tabCompleteNames.forEach(i => {
+            if (i.startsWith((args[args.length - 1])?.toLowerCase())) {
+                namesThatStartWith.push(i);
+            }
+        });
+    
+        return namesThatStartWith;
+    }
+}
+
+
+register("command", (...args) => {
+    if (!args?.[0]) {
+        BigCommand.help();
+        return;
+    }
+
+    switch (args[0]) {
+        case "floorstats":
+            BigCommand.floorStats(args);
+            break;
+    }
+    
+
+}).setName("large").setTabCompletions( (args) => {
+    return BigCommand.tabCompletion(args);
+});

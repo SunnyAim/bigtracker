@@ -153,7 +153,6 @@ const getPartyMembers = () => {
         if (Scoreboard[i].includes("[")) {
             let line = Scoreboard[i].removeFormatting();
 
-            // hopefully this still works for youtube ranks. it should.
             // [LVL] ?youtube? name ? (Class/Dead ?LVL)
             // /\[\d+\].* ([a-zA-Z0-9_]{3,16}) .*\((Archer|Mage|Tank|Berserk|Healer|DEAD|EMPTY).*\)/
             let match = line.match(/\[\d+\].* ([a-zA-Z0-9_]{3,16}) .*\((Archer|Mage|Tank|Berserk|Healer|DEAD|EMPTY).*\)/);
@@ -175,12 +174,6 @@ const getPartyMembers = () => {
 
     gotAllMembers = !deadPlayer;
     partyMembers = tempPartyMembers;
-
-    // if (gotAllMembers) {
-        // for (let name of Object.keys(partyMembers)) {
-            // console.log(`${name}: ${partyMembers[name]}`)
-        // }
-    // }
 }
 
 
@@ -392,9 +385,6 @@ register("command", (...args) => {
             printAll();
             break;
         }
-        case "resetallthegoddamnpre4s":
-            resetAllPre4();
-            break;
         case "note": {
             getPlayerDataByName(args[1], "NOTE", args);
             break;

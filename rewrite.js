@@ -61,8 +61,45 @@ register("worldLoad", () => {
 
 class ChatHandler {
     static dungeon = null;
+    static getLoot = false;
 
     static runText(text) {
+        if (text.match(/(WOOD|GOLD|EMERALD|OBSIDIAN|BEDROCK) CHEST REWARDS/)) {
+            ChatHandler.getLoot = true;
+            if (!runData["chests"]) {
+                runData["chests"] = {
+                    num: 0
+                };
+            }
+
+        }
+        
+        if (ChatHandler.getLoot) {
+            if (text.match(/.+Essence x(\d+)/)) {
+                let amt = parseInt(chatMsg.match(/.+Essence x(\d+)/)[1]);
+                let type = chatMsg.match(/(.+ Essence) x.+/)[1];
+                if (!runData["chests"]?.[type]) {
+                    runData["chests"][type] = amt;
+                } else {
+                    runData["chests"][type] += amt;
+                }
+            } else {
+                text = text.trim();
+                if (!runData["chests"]?.[text]) {
+                    runData["chests"][text] = 1;
+                } else {
+                    runData["chests"][text] += 1;
+                }
+            }
+
+            if (text.trim() == "") {
+                ChatHandler.getLoot = false;
+                runData.save();
+                return;
+            }
+        }
+
+
         if (text.match(/Party Finder > (.+) joined the dungeon group! .+/)) {
             const match = text.match(/Party Finder > (.+) joined the dungeon group! .+/);
             getPlayerByName(match[1], BigPlayer.TaskType.CHECK);

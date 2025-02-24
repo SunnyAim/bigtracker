@@ -218,7 +218,7 @@ class ChatHandler {
                 if (time > temp.slowest) {
                     temp.slowest = time;
                 }
-                temp.avg = Utils.calcMovingAvg(temp.avg, temp.num);
+                temp.avg = Utils.calcMovingAvg(temp.avg, temp.num, time);
                 temp.num += 1;
                 runData[t][f][nPartyMembers] = temp;
             }
@@ -238,7 +238,7 @@ class ChatHandler {
             if (text.includes(" You ")) name = Player.getName().toLowerCase();
             if (name.trim() == "") return;
         
-            if (!ChatHandler.dungeon.pre4Done && ChatHandler.dungeon.splits[DungeonRun.SplitType.START]?.[DungeonRun.SplitType.TERMS] && partyMembers?.[name] == "Berserk") {
+            if (!ChatHandler.dungeon.pre4Done && ChatHandler.dungeon.splits[DungeonRun.SplitType.START]?.[DungeonRun.SplitType.TERMS] && this.partyMembers?.[name] == "Berserk") {
                 ChatHandler.dungeon.pre4Done = true; 
                 getPlayerByName(name, BigPlayer.TaskType.PRE4, false);
             }
@@ -474,8 +474,8 @@ class DungeonRun {
 
 
 class Utils {
-    static calcMovingAvg = (t, n) => {
-        return t * n / (n + 1) + (t / (n + 1));
+    static calcMovingAvg = (t, n, time) => {
+        return t * n / (n + 1) + (time / (n + 1));
     }
 
     static toRoman = ["I", "II", "III", "IV", "V", "VI", "VII"];

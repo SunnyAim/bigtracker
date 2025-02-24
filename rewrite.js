@@ -64,20 +64,26 @@ class ChatHandler {
     static getLoot = false;
 
     static runText(text) {
-        if (text.match(/(WOOD|GOLD|EMERALD|OBSIDIAN|BEDROCK) CHEST REWARDS/)) {
+        // yes this is supposed to write the type of chest reward to the file because why not.
+        if (text.match(/\s+(WOOD|GOLD|EMERALD|OBSIDIAN|BEDROCK) CHEST REWARDS/)) {
             ChatHandler.getLoot = true;
             if (!runData["chests"]) {
                 runData["chests"] = {
-                    num: 0
+                    total: 0
                 };
             }
-
+            runData["chests"]["total"] += 1;
         }
         
         if (ChatHandler.getLoot) {
+            if (text.trim() == "") {
+                ChatHandler.getLoot = false;
+                runData.save();
+                return;
+            }
             if (text.match(/.+Essence x(\d+)/)) {
-                let amt = parseInt(chatMsg.match(/.+Essence x(\d+)/)[1]);
-                let type = chatMsg.match(/(.+ Essence) x.+/)[1];
+                let amt = parseInt(text.match(/.+Essence x(\d+)/)[1]);
+                let type = text.match(/(.+ Essence) x.+/)[1].trim();
                 if (!runData["chests"]?.[type]) {
                     runData["chests"][type] = amt;
                 } else {
@@ -90,12 +96,6 @@ class ChatHandler {
                 } else {
                     runData["chests"][text] += 1;
                 }
-            }
-
-            if (text.trim() == "") {
-                ChatHandler.getLoot = false;
-                runData.save();
-                return;
             }
         }
 
@@ -169,9 +169,13 @@ class ChatHandler {
             let match = text.match(/\s+☠ Defeated (.+) in (\d+)m\s+(\d+)s/);
             let time = (parseInt(match[2]) * 60) + parseInt(match[3]);
             let nPartyMembers = ChatHandler.dungeon.numPartyMembers;
-            let scoreboardFloor = Utils.findScoreboardFloor();
-            let t = scoreboardFloor[0];
-            let f = scoreboardFloor[1];
+            let t = ChatHandler.dungeon.floor?.[0];
+            let f = ChatHandler.dungeon.floor?.[1];
+
+            if (!t || !f) {
+                console.log(`error on scoreboard floor: ${t} ${f}`);
+                return;
+            }
 
             if (!runData?.[t]) {
                 runData[t] = {};
@@ -228,6 +232,16 @@ class ChatHandler {
 
 
 class BigPlayer {
+    static TaskType = Object.freeze({
+        CHECK: "CHECK",
+        UPDATE: "UPDATE",
+        SS: "SS",
+        PRE4: "PRE4",
+        TERMS: "TERMS",
+        RUNDONE: "RUNDONE",
+        DEATH: "DEATH"
+    });
+
     constructor(UUID, username="") {
         this.playerData = new PogObject("temptracker/bigplayers", {
             UUID: UUID,
@@ -240,16 +254,6 @@ class BigPlayer {
     save() {
         this.playerData.save();
     }
-
-    static TaskType = Object.freeze({
-        CHECK: "check",
-        UPDATE: "update",
-        SS: "ss",
-        PRE4: "pre4",
-        TERMS: "terms",
-        RUNDONE: "rundone",
-        DEATH: "death"
-    });
 
     doTask(task=null, extra=null) {
         if (task == null && extra == null) {
@@ -356,28 +360,30 @@ class OnTick {
 
 
 class DungeonRun {
+    static SplitType = Object.freeze({
+        START: "START",
+        END: "END",
+        RUN: "RUN",
+        CAMP: "CAMP",
+        TERMS: "TERMS"
+    });
+
     constructor() {
         this.partyMembers = {};
         this.gotAllMembers = false;
         this.splits = {
-            "start": {},
-            "end": {}
+            "START": {},
+            "END": {}
         };
         this.ssDone = false;
         this.pre4Done = false;
         this.soloRun = false;
         this.numPartyMembers = null;
         this.runDone = false;
+        this.floor = Utils.findScoreboardFloor();
         this.doSplit(DungeonRun.SplitType.RUN, DungeonRun.SplitType.START);
     }
 
-    static SplitType = Object.freeze({
-        START: "start",
-        END: "end",
-        RUN: "run",
-        CAMP: "camp",
-        TERMS: "terms"
-    });
 
     doSplit(type, or) {
         this.splits[or][type] = [Date.now(), tick.getTotalTicks()];
@@ -389,16 +395,13 @@ class DungeonRun {
         // end run -> nothing. not a thing here.
 
         switch (or) {
-            case SplitType.START:
+            case DungeonRun.SplitType.START:
                 switch (type) {
-                    case SplitType.CAMP:
+                    case DungeonRun.SplitType.CAMP:
                         break;
                 }
                 break;
 
-
-            case SplitType.END:
-                break;
         }
     }
 
@@ -414,14 +417,14 @@ class DungeonRun {
         const Scoreboard = TabList?.getNames();
         if (!Scoreboard || Scoreboard?.length === 0) return;
     
-        let numMembers = parseInt(Scoreboard[0]?.charAt(28));
+        this.numPartyMembers = parseInt(Scoreboard[0]?.charAt(28));
         let deadPlayer = false;
         let tempPartyMembers = {};
     
-        soloRun = numMembers == 1;
+        soloRun = this.numPartyMembers == 1;
     
         for (let i = 1; i < Scoreboard.length; i++) {
-            if (Object.keys(tempPartyMembers).length === numMembers || Scoreboard[i].includes("Player Stats")) {
+            if (Object.keys(tempPartyMembers).length === this.numPartyMembers || Scoreboard[i].includes("Player Stats")) {
                 break;
             }
     
@@ -490,7 +493,9 @@ const tick = new OnTick();
 
 
 register("packetReceived", (packet, event) => {
-    if (packet.func_148916_d()) return;
+    if (packet.func_148916_d()) {
+        return;
+    }
 
     const chatComponent = packet.func_148915_c();
     const text = new String(chatComponent.func_150254_d().removeFormatting());
@@ -572,6 +577,9 @@ register("command", (...args) => {
     switch (args[0]) {
         case "floorstats":
             BigCommand.floorStats(args);
+            break;
+        case "scoreboard":
+            console.log(ChatHandler.dungeon.floor);
             break;
     }
     

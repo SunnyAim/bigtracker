@@ -3,6 +3,7 @@ import request from "../requestV2";
 
 const S02PacketChat = Java.type("net.minecraft.network.play.server.S02PacketChat");
 const S32PacketConfirmTransaction = Java.type("net.minecraft.network.play.server.S32PacketConfirmTransaction");
+const C0EPacketClickWindow = Java.type("net.minecraft.network.play.client.C0EPacketClickWindow");
 const File = Java.type("java.io.File");
 
 const playerData = {};
@@ -13,7 +14,9 @@ const data = new PogObject("temptracker", {
     firstTime: true
 }, "settings.json");
 
-const runData = new PogObject("temptracker", {}, "bigloot.json");
+const runData = new PogObject("temptracker", {
+    chests: {}
+}, "bigloot.json");
 
 
 if (data.firstTime) {
@@ -56,45 +59,60 @@ const getPlayerByName = (name, task=null, extra=null) => {
 register("worldLoad", () => {
     tick.reset();
     ChatHandler.dungeon = null;
+    ChatHandler.getLoot = false;
+    ChatHandler.lastGuiName = "";
 });
 
 
 class ChatHandler {
     static dungeon = null;
     static getLoot = false;
+    static lastGuiName = "";
 
     static runText(text) {
         // yes this is supposed to write the type of chest reward to the file because why not.
         if (text.match(/\s+(WOOD|GOLD|EMERALD|OBSIDIAN|BEDROCK) CHEST REWARDS/)) {
             ChatHandler.getLoot = true;
-            if (!runData["chests"]) {
-                runData["chests"] = {
-                    total: 0
+
+            if (ChatHandler.lastGuiName == "" && ChatHandler.dungeon != null) {
+                ChatHandler.lastGuiName = Utils.fakeLastGuiName();
+            }
+
+            if (ChatHandler.lastGuiName == "") {
+                console.log("bigtracker > an error occured logging chest loot");
+                return;
+            }
+
+            if (!runData["chests"]?.[ChatHandler.lastGuiName]) {
+                runData["chests"][ChatHandler.lastGuiName] = {
+                    Total: 0
                 };
             }
-            runData["chests"]["total"] += 1;
+
+            runData["chests"][ChatHandler.lastGuiName]["Total"] += 1;
         }
         
         if (ChatHandler.getLoot) {
             if (text.trim() == "") {
                 ChatHandler.getLoot = false;
+                ChatHandler.writeToFloor = null;
                 runData.save();
                 return;
             }
             if (text.match(/.+Essence x(\d+)/)) {
                 let amt = parseInt(text.match(/.+Essence x(\d+)/)[1]);
                 let type = text.match(/(.+ Essence) x.+/)[1].trim();
-                if (!runData["chests"]?.[type]) {
-                    runData["chests"][type] = amt;
+                if (!runData["chests"][ChatHandler.lastGuiName]?.[type]) {
+                    runData["chests"][ChatHandler.lastGuiName][type] = amt;
                 } else {
-                    runData["chests"][type] += amt;
+                    runData["chests"][ChatHandler.lastGuiName][type] += amt;
                 }
             } else {
                 text = text.trim();
-                if (!runData["chests"]?.[text]) {
-                    runData["chests"][text] = 1;
+                if (!runData["chests"][ChatHandler.lastGuiName]?.[text]) {
+                    runData["chests"][ChatHandler.lastGuiName][text] = 1;
                 } else {
-                    runData["chests"][text] += 1;
+                    runData["chests"][ChatHandler.lastGuiName][text] += 1;
                 }
             }
         }
@@ -460,16 +478,35 @@ class Utils {
         return t * n / (n + 1) + (t / (n + 1));
     }
 
-    static msgToFloor = {
-        "Maxor, Storm, Goldor, and Necron": 7,
-        "Sadan": 6,
-        "Livid": 5,
-        "Thorn": 4,
-        "The Professor": 3,
-        "Scarf": 2,
-        "Bonzo": 1,
-        "The Watcher": 0
+    static toRoman = ["I", "II", "III", "IV", "V", "VI", "VII"];
+
+    static fakeLastGuiName() {
+        let t = ChatHandler.dungeon.floor[0];
+        let f = ChatHandler.dungeon.floor[1];
+
+        let guiNameStr = "";
+        if (t == "E") {
+            return "Entrance";
+        } else if (t == "F") {
+            guiNameStr = "The Catacombs ";
+        } else if (t == "M") {
+            guiNameStr = "Master Mode The Catacombs ";
+        }
+
+        guiNameStr += "Floor ";
+        return guiNameStr + Utils.toRoman[f - 1];
     }
+
+    // static msgToFloor = {
+    //     "Maxor, Storm, Goldor, and Necron": 7,
+    //     "Sadan": 6,
+    //     "Livid": 5,
+    //     "Thorn": 4,
+    //     "The Professor": 3,
+    //     "Scarf": 2,
+    //     "Bonzo": 1,
+    //     "The Watcher": 0
+    // }
 
     static findScoreboardFloor() {
         let board = Scoreboard.getLines();
@@ -507,6 +544,22 @@ register("packetReceived", (packet, event) => {
 register("packetReceived", (packet, event) => {
     tick.do();
 }).setFilteredClass(S32PacketConfirmTransaction);
+
+
+register("packetSent", (packet, event) => {
+    let item = packet?.func_149546_g();
+    if (!item) return;
+    item = new Item(item);
+    if (item.getName()?.includes("The Catacombs")) {
+        let cataType = item.getName()?.removeFormatting();
+        let cataFloor = item.getLore()[1]?.removeFormatting()?.match(/Tier: (.+)/)?.[1];
+        if (!cataType || !cataFloor) {
+            return;
+        }
+        ChatHandler.lastGuiName = `${cataType} ${cataFloor}`;
+    }
+
+}).setFilteredClass(C0EPacketClickWindow);
 
 
 class BigCommand {

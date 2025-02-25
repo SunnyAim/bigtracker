@@ -299,11 +299,36 @@ class BigPlayer {
             case BigPlayer.TaskType.PRINT:
                 this.printPlayer();
                 break;
+            case BigPlayer.TaskType.RUNDONE:
+                let runTimeMS = ChatHandler.dungeon.split[DungeonRun.SplitType.END][DungeonRun.SplitType.RUN][0] - ChatHandler.dungeon.split[DungeonRun.SplitType.START][DungeonRun.SplitType.RUN][0];
+                let runTimeTicks = ChatHandler.dungeon.split[DungeonRun.SplitType.END][DungeonRun.SplitType.RUN][1] - ChatHandler.dungeon.split[DungeonRun.SplitType.START][DungeonRun.SplitType.RUN][1];
+                this.updateTime(BigPlayer.TaskType.RUNDONE, runTimeMS, runTimeTicks);
+                this.playerData["RUNS"] = (this.playerData["RUNS"] || 0) + 1;
+                this.playerData["CLASS"] = ChatHandler?.dungeon?.partyMembers?.[this.playerData?.["USERNAME"]];
+                break;
         }
     }
 
     printPlayer() {
-        
+        ChatLib.chat(`&7>> &b${this.playerData["USERNAME"]}`);
+        console.log(this.playerData?.["NOTE"])
+        if (this.playerData?.["NOTE"] != undefined && this.playerData["NOTE"] != "") {
+            ChatLib.chat(`&9Note &7>> &f${this.playerData["NOTE"]}`);
+        }
+
+        if (this.playerData?.["DODGE"]) {
+            if (this.playerData?.["DODGELENGTH"]) {
+                let timeLeft = Date.now() - this.playerData["DODGEDATE"];
+                timeLeft /= 8640000; //86400000
+                timeLeft = Math.round(timeLeft) / 10;
+                ChatLib.chat(`&7>> &bDodged&7; &f${timeLeft} days remaining`);
+            }
+            else {
+                ChatLib.chat(`&7>> &bDodged`);
+            }
+        }
+
+
     }
     
     updateTime(updateType, compMS, compTicks) {
@@ -328,10 +353,6 @@ class BigPlayer {
         
         if (this.playerData[updateType + "pb"][0] > compMS) {
             this.playerData[updateType + "pb"] = [compMS, compTicks];
-        }
-
-        if (updateType == BigPlayer.TaskType.RUNDONE) {
-            this.playerData["CLASS"] = ChatHandler?.dungeon?.partyMembers?.[this.playerData?.["USERNAME"]];
         }
     }
 
@@ -422,7 +443,7 @@ class DungeonRun {
         // end camp -> update avg camp for mage
         // start terms -> nothing
         // end terms -> update avg terms for everyone, maybe print splits/ticktime? idk
-        // end run -> nothing. not a thing here.
+        // end run -> nothing.
 
         switch (or) {
             case DungeonRun.SplitType.START:
@@ -463,6 +484,7 @@ class DungeonRun {
     }
 
     endRun(time) {
+        this.doSplit(DungeonRun.SplitType.RUN, DungeonRun.SplitType.END);
         for (let name of Object.keys(this.partyMembers)) {
             getPlayerByName(name, BigPlayer.TaskType.RUNDONE, time);
         }
@@ -513,7 +535,12 @@ class DungeonRun {
 
 
 class Utils {
-    static calcMovingAvg = (t, n, time) => {
+    static chatMsgHover(msgTxt, hoverTxt) {
+        new TextComponent(msgTxt).setHover("show_text", hoverTxt).chat();
+    }
+
+
+    static calcMovingAvg(t, n, time) {
         return t * n / (n + 1) + (time / (n + 1));
     }
 
@@ -618,16 +645,16 @@ class BigCommand {
     }
 
     static view = (args) => {
-        if (!args?.[1]) {
-            ChatLib.chat(`/${cmdName} <name>`);
+        if (!args?.[0]) {
+            ChatLib.chat(`/${BigCommand.cmdName} <name>`);
             return;
         }
 
-        if (args[1] == "get") {
+        if (args[0] == "get") {
             args.shift();
         }
 
-        getPlayerByName(this.name, BigPlayer.TaskType.PRINT);
+        getPlayerByName(args[0], BigPlayer.TaskType.PRINT);
     }
 
     static floorStats = (args) => {

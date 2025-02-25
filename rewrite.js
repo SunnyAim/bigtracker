@@ -102,18 +102,10 @@ class ChatHandler {
             if (text.match(/.+Essence x(\d+)/)) {
                 let amt = parseInt(text.match(/.+Essence x(\d+)/)[1]);
                 let type = text.match(/(.+ Essence) x.+/)[1].trim();
-                if (!runData["chests"][ChatHandler.lastGuiName]?.[type]) {
-                    runData["chests"][ChatHandler.lastGuiName][type] = amt;
-                } else {
-                    runData["chests"][ChatHandler.lastGuiName][type] += amt;
-                }
+                runData["chests"][ChatHandler.lastGuiName][type] = (runData["chests"][ChatHandler.lastGuiName][type] || 0) + amt;
             } else {
                 text = text.trim();
-                if (!runData["chests"][ChatHandler.lastGuiName]?.[text]) {
-                    runData["chests"][ChatHandler.lastGuiName][text] = 1;
-                } else {
-                    runData["chests"][ChatHandler.lastGuiName][text] += 1;
-                }
+                runData["chests"][ChatHandler.lastGuiName][text] = (runData["chests"][ChatHandler.lastGuiName][text] || 0) + 1;
             }
         }
 
@@ -292,10 +284,7 @@ class BigPlayer {
                 this.pre4(extra);
                 break;
             case BigPlayer.TaskType.DEATH:
-                if (!this.playerData?.["DEATHS"]) {
-                    this.playerData["DEATHS"] = 0;
-                }
-                this.playerData["DEATHS"] += 1;
+                this.playerData["DEATHS"] = (this.playerData["DEATHS"] || 0) + 1;
                 this.save();
                 break;
             case BigPlayer.TaskType.PRINT:
@@ -340,7 +329,7 @@ class BigPlayer {
                     this.playerData["NOTE"] = note;
                     dodgeStr += `\n&8Note &7>> &f${note}`;
                 }
-                
+
                 this.save();
                 ChatLib.chat(dodgeStr);
                 break;
@@ -799,9 +788,48 @@ register("packetSent", (packet, event) => {
 class BigCommand {
     static tabCommands = ["floorstats", "scoreboard", "note", "dodge"];
     static cmdName = "large";
+    static chestTypes = ["WOOD CHEST REWARDS", "GOLD CHEST REWARDS", "EMERALD CHEST REWARDS", "OBSIDIAN CHEST REWARDS", "BEDROCK CHEST REWARDS"];
+    static essenceTypes = ["Undead Essence", "Wither Essence"];
 
     static help = () => {
         
+    }
+
+    static loot = (floor) => {
+        floor = floor.toUpperCase();
+        let floorStr = "";
+        if (floor.charAt(0) == "M") {
+            floorStr += "Master Mode ";
+        }
+        floorStr += "The Catacombs Floor ";
+        floorStr += Utils.toRoman[parseInt(floor.charAt(1)) - 1];
+        let floorLoot = runData["chests"]?.[floorStr];
+        ChatLib.chat(`&fLoot for &c${floorStr}`);
+        if (!floorLoot) {
+            ChatLib.chat("&cInvalid Floor");
+            return;
+        }
+
+        ChatLib.chat(`&fTotal Chests: ${floorLoot["Total"]}`);
+        for (let type of BigCommand.chestTypes) {
+            if (!floorLoot?.[type]) continue;
+            ChatLib.chat(`&8${type}&7: ${floorLoot[type]}`);
+        }
+
+        for (let type of Object.keys(floorLoot)) {
+            if (!type.includes("Enchanted Book")) continue;
+            ChatLib.chat(`&c${type}&7: ${floorLoot[type]}`);
+        }
+
+        for (let type of BigCommand.essenceTypes) {
+            if (!floorLoot?.[type]) continue;
+            ChatLib.chat(`&e${type}&7: ${floorLoot[type]}`);
+        }
+        
+        for (let type of Object.keys(floorLoot)) {
+            if (BigCommand.essenceTypes.includes(type) || BigCommand.chestTypes.includes(type) || type == "Total" || type.includes("Enchanted Book")) continue;
+            ChatLib.chat(`&d${type}&7: ${floorLoot[type]}`);
+        }
     }
 
     static dodge = (args) => {
@@ -909,6 +937,10 @@ register("command", (...args) => {
             break;
         case "note":
             BigCommand.note(args);
+            break;
+        case "loot":
+        case "chests":
+            BigCommand.loot(args[1]);
             break;
         default:
             BigCommand.view(args);

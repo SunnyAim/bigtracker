@@ -257,7 +257,9 @@ class BigPlayer {
         PRE4: "PRE4",
         TERMS: "TERMS",
         RUNDONE: "RUNDONE",
-        DEATH: "DEATH"
+        DEATH: "DEATH",
+        BR: "BR",
+        PRINT: "PRINT"
     });
 
     constructor(UUID, username="") {
@@ -294,7 +296,14 @@ class BigPlayer {
                 this.playerData["DEATHS"] += 1;
                 this.save();
                 break;
+            case BigPlayer.TaskType.PRINT:
+                this.printPlayer();
+                break;
         }
+    }
+
+    printPlayer() {
+        
     }
     
     updateTime(updateType, compMS, compTicks) {
@@ -319,6 +328,10 @@ class BigPlayer {
         
         if (this.playerData[updateType + "pb"][0] > compMS) {
             this.playerData[updateType + "pb"] = [compMS, compTicks];
+        }
+
+        if (updateType == BigPlayer.TaskType.RUNDONE) {
+            this.playerData["CLASS"] = ChatHandler?.dungeon?.partyMembers?.[this.playerData?.["USERNAME"]];
         }
     }
 
@@ -402,7 +415,6 @@ class DungeonRun {
         this.doSplit(DungeonRun.SplitType.RUN, DungeonRun.SplitType.START);
     }
 
-
     doSplit(type, or) {
         this.splits[or][type] = [Date.now(), tick.getTotalTicks()];
         // start run -> nothing
@@ -416,10 +428,37 @@ class DungeonRun {
             case DungeonRun.SplitType.START:
                 switch (type) {
                     case DungeonRun.SplitType.CAMP:
+                        for (let name of Object.keys(this.partyMembers)) {
+                            if (this.partyMembers[name] != "Mage" && this.partyMembers[name] != "Archer") {
+                                continue;
+                            }
+                            getPlayerByName(name, BigPlayer.TaskType.UPDATE, [BigPlayer.TaskType.BR, this.splits[or][type][0], this.splits[or][type][1]]);
+                        }
                         break;
                 }
                 break;
-
+            case DungeonRun.SplitType.END:
+                switch (type) {
+                    case DungeonRun.SplitType.CAMP:
+                        for (let name of Object.keys(this.partyMembers)) {
+                            if (this.partyMembers[name] != "Mage") continue;
+                            let campDoneAt = this.splits[or][type];
+                            let campStartedAt = this.splits[DungeonRun.SplitType.START][type];
+                            let campTime = [campDoneAt[0] - campStartedAt[0], campDoneAt[1] - campStartedAt[1]];
+                            getPlayerByName(name, BigPlayer.TaskType.UPDATE, [DungeonRun.SplitType.CAMP, campTime[0], campTime[1]]);
+                            break;
+                        }
+                        break;
+                    case DungeonRun.SplitType.TERMS:
+                        let termsStartedAt = this.splits[DungeonRun.SplitType.START][type];
+                        let termsEndedAt = this.splits[DungeonRun.SplitType.END][type];
+                        let termTime = [termsEndedAt[0] - termsStartedAt[0], termsEndedAt[1] - termsStartedAt[1]];
+                        for (let name of Object.keys(this.partyMembers)) {
+                            getPlayerByName(name, BigPlayer.TaskType.UPDATE, [DungeonRun.SplitType.TERMS, termTime[0], termTime[1]]);
+                        }
+                        break;
+                }
+                break;
         }
     }
 
@@ -563,10 +602,32 @@ register("packetSent", (packet, event) => {
 
 
 class BigCommand {
-    static tabCommands = ["floorstats"];
+    static tabCommands = ["floorstats", "scoreboard"];
+    static cmdName = "large";
 
     static help = () => {
         
+    }
+
+    static dodge = (args) => {
+
+    }
+
+    static note = (args) => {
+
+    }
+
+    static view = (args) => {
+        if (!args?.[1]) {
+            ChatLib.chat(`/${cmdName} <name>`);
+            return;
+        }
+
+        if (args[1] == "get") {
+            args.shift();
+        }
+
+        getPlayerByName(this.name, BigPlayer.TaskType.PRINT);
     }
 
     static floorStats = (args) => {
@@ -634,9 +695,18 @@ register("command", (...args) => {
         case "scoreboard":
             console.log(ChatHandler.dungeon.floor);
             break;
+        case "dodge":
+            BigCommand.dodge(args);
+            break;
+        case "note":
+            BigCommand.note(args);
+            break;
+        default:
+            BigCommand.view(args);
+            break;
     }
     
 
-}).setName("large").setTabCompletions( (args) => {
+}).setName(BigCommand.cmdName).setTabCompletions( (args) => {
     return BigCommand.tabCompletion(args);
 });

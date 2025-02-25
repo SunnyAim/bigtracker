@@ -259,7 +259,9 @@ class BigPlayer {
         RUNDONE: "RUNDONE",
         DEATH: "DEATH",
         BR: "BR",
-        PRINT: "PRINT"
+        PRINT: "PRINT",
+        NOTE: "NOTE",
+        DODGE: "DODGE"
     });
 
     constructor(UUID, username="") {
@@ -305,13 +307,65 @@ class BigPlayer {
                 this.updateTime(BigPlayer.TaskType.RUNDONE, runTimeMS, runTimeTicks);
                 this.playerData["RUNS"] = (this.playerData["RUNS"] || 0) + 1;
                 this.playerData["CLASS"] = ChatHandler?.dungeon?.partyMembers?.[this.playerData?.["USERNAME"]];
+                this.playerData["LASTRUN"] = Date.now();
+                this.save();
+                break;
+            case BigPlayer.TaskType.NOTE:
+                this.note(extra);
+                break;
+            case BigPlayer.TaskType.BR:
+                this.updateTime(extra[0], extra[1], extra[2]);
+                break;
+            case BigPlayer.TaskType.DODGE:
+                let len = extra[0];
+                let note = extra[1];
+                if (this.playerData?.["DODGE"]) {
+                    this.playerData["DODGE"] = false;
+                    this.playerData["DODGELENGTH"] = undefined;
+                    this.playerData["DODGEDATE"] = undefined;
+                    ChatLib.chat(`&9Dodge Removed &7>> &f${this.playerData["USERNAME"]}`);
+                    return;
+                }
+
+                this.playerData["DODGE"] = true;
+                let dodgeStr = `&8Now Dodging &7>> &f${this.playerData.USERNAME}`
+
+                if (len != 0) {
+                    this.playerData["DODGEDATE"] = Date.now();
+                    this.playerData["DODGELENGTH"] = len;
+                    dodgeStr += `\n&8Days &7>> &f${len}`;
+                }
+
+                if (note != "") {
+                    this.playerData["NOTE"] = note;
+                    dodgeStr += `\n&8Note &7>> &f${note}`;
+                }
+                
+                this.save();
+                ChatLib.chat(dodgeStr);
+                break;
+            default:
                 break;
         }
     }
 
+    note(noteStr="") {
+        if (noteStr == "") {
+            this.playerData["NOTE"] = "";
+            ChatLib.chat(`&7>> &fCleared note for ${this.playerData["USERNAME"]}`);
+        } else {
+            this.playerData["NOTE"] = noteStr;
+            ChatLib.chat(`&b${this.playerData["USERNAME"]}`);
+            ChatLib.chat(`&8Note &7>> &f${this.playerData["NOTE"]}`);
+        }
+    }
+
     printPlayer() {
-        ChatLib.chat(`&7>> &b${this.playerData["USERNAME"]}`);
-        console.log(this.playerData?.["NOTE"])
+        Utils.chatMsgClickURL(`&7>> &b${this.playerData["USERNAME"]}`, `https://namemc.com/search?q=${this.playerData["UUID"]}`);
+        if (this.playerData?.["CLASS"] != undefined) {
+            ChatLib.chat(`&8Class &7>> &f${this.playerData["CLASS"]}`);
+        }
+
         if (this.playerData?.["NOTE"] != undefined && this.playerData["NOTE"] != "") {
             ChatLib.chat(`&9Note &7>> &f${this.playerData["NOTE"]}`);
         }
@@ -328,7 +382,117 @@ class BigPlayer {
             }
         }
 
+        if (this.playerData?.["RUNS"]) {
+            ChatLib.chat(`&8Runs &7>> &f${this.playerData["RUNS"]}`);
 
+            if (this.playerData?.["DEATHS"]) {
+                ChatLib.chat(`&8DPR &7>> &f${(this.playerData["DEATHS"] / this.playerData["RUNS"]).toFixed(2)}`);
+            }
+
+            if (this.playerData?.["LASTRUN"]) {
+                ChatLib.chat(`&8Last Run &7>> &f${Math.round(ms / 8640000) / 10}d ago`);
+            }
+
+            let pbString = "&9PBs &7>> ";
+
+            if (this.playerData?.["SSpb"]) {
+                pbString += "&fSS: [";
+                let pbSS = this.playerData["SSpb"];
+                if (pbSS[0] < 12) pbString += `&a`;
+                else if (pbSS[0] < 13) pbString += `&e`;
+                else pbString += `&c`;
+                pbString += `${pbSS[0]}, ${pbSS[1]}&f] &7| &r`;
+            }
+
+            if (this.playerData?.["TERMSpb"]) {
+                pbString += "&fTerms: [";
+                let pbTerms = this.playerData["TERMSpb"];
+                if (pbTerms < 40) pbString += `&a`;
+                else if (pbTerms < 45) pbString += `&e`;
+                else pbString += `&c`;
+                pbString += `${pbTerms}&f] &7| &r`;
+            }
+
+            if (this.playerData?.["RUNDONEpb"]) {
+                pbString += "&fRun: [";
+                let pbRun = this.playerData["RUNDONEpb"];
+                if (pbRun[0] < 310) pbString += `&a`;
+                else if (pbRun[0] < 330) pbString += `&e`;
+                else pbString += `&c`;
+                pbString += `${pbRun[0]}, ${pbRun[1]}&f] &7| &r`;
+            }
+
+            if (this.playerData?.["CAMPpb"]) {
+                pbString += "&fCamp: [";
+                let pbCamp = this.playerData["CAMPpb"];
+                if (pbCamp[0] < 61) pbString += `&a`;
+                else if (pbCamp[0] < 65) pbString += `&e`;
+                else pbString += `&c`;
+                pbString += `${pbCamp[0]}, ${pbCamp[1]}&f] &7| &r`;
+            }
+
+            if (pbString != "&9PBs &7>> ") {
+                ChatLib.chat(pbString);
+            }
+
+
+            let medString = "&9AVGs &7>> ";
+
+            if (this.playerData?.["SS"]?.length) {
+                let avgSS = this.getAvgOfType(BigPlayer.TaskType.SS);
+                medString += "&fSS: [";
+                if (avgSS[0] < 13) medString += `&a`;
+                else if (avgSS[0] < 14) medString += `&e`;
+                else medString += `&c`;
+                medString += `${avgSS[0]}, ${avgSS[1]}&f] &7| &r`;
+            }
+
+            if (this.playerData?.["BR"]?.length) {
+                let avgBR = this.getAvgOfType(BigPlayer.TaskType.BR);
+                medString += "&fBR: [";
+                if (avgBR[0] < 25) medString += `&a`;
+                else if (avgBR[0] < 32) medString += `&e`;
+                else medString += `&c`;
+                medString += `${avgBR[0]}, ${avgBR[1]}&f] &7| &r`;
+            }
+
+            if (this.playerData?.["CAMP"]?.length) {
+                let avgCamp = this.getAvgOfType(BigPlayer.TaskType.CAMP);
+                medString += "&fCamp: [";
+                if (avgCamp[0] < 66) medString += `&a`;
+                else if (avgCamp[0] < 70) medString += `&e`;
+                else medString += `&c`;
+                medString += `${avgCamp[0]}, ${avgCamp[1]}&f] &7| &r`;
+            }
+
+            if (this.playerData?.["TERMS"]?.length) {
+                let avgTerms = this.getAvgOfType(BigPlayer.TaskType.TERMS);
+                medString += "&fTerms: [";
+                if (avgTerms[0] < 45) medString += `&a`;
+                else if (avgTerms[0] < 51) medString += `&e`;
+                else medString += `&c`;
+                medString += `${avgTerms[0]}, ${avgTerms[1]}&f] &7| &r`;
+            }
+
+            if (this.playerData?.["RUNDONE"]?.length) {
+                let avgRun = this.getAvgOfType(BigPlayer.TaskType.RUNDONE);
+                medString += "&fRun: [";
+                if (avgRun[0] < 330) medString += `&a`;
+                else if (avgRun[0] < 360) medString += `&e`;
+                else medString += `&c`;
+                medString += `${avgRun[0]}, ${avgRun[1]}&f] &7| &r`;
+            }
+
+            if (medString != "&9AVGs &7>> ") {
+                ChatLib.chat(medString);
+            }
+
+            if (this.playerData?.["pre4raten"]) {
+                ChatLib.chat(`&9Pre4 &7>> &f${this.playerData?.["pre4rate"] || 0}/${this.playerData?.["pre4raten"]} (${((this.playerData?.["pre4rate"] || 0) / (this.playerData?.["pre4raten"] || 1) * 100).toFixed(2)}%)`);
+            }
+        } else {
+            ChatLib.chat("&8Runs &7>> &f0");
+        }
     }
     
     updateTime(updateType, compMS, compTicks) {
@@ -432,8 +596,8 @@ class DungeonRun {
         this.soloRun = false;
         this.numPartyMembers = null;
         this.runDone = false;
-        this.floor = Utils.findScoreboardFloor();
         this.doSplit(DungeonRun.SplitType.RUN, DungeonRun.SplitType.START);
+        this.floor = Utils.findScoreboardFloor();
     }
 
     doSplit(type, or) {
@@ -535,6 +699,10 @@ class DungeonRun {
 
 
 class Utils {
+    static chatMsgClickURL(msgTxt, clickTxt) {
+        new TextComponent(msgTxt).setClick("open_url", clickTxt).chat();
+    }
+
     static chatMsgHover(msgTxt, hoverTxt) {
         new TextComponent(msgTxt).setHover("show_text", hoverTxt).chat();
     }
@@ -629,7 +797,7 @@ register("packetSent", (packet, event) => {
 
 
 class BigCommand {
-    static tabCommands = ["floorstats", "scoreboard"];
+    static tabCommands = ["floorstats", "scoreboard", "note", "dodge"];
     static cmdName = "large";
 
     static help = () => {
@@ -637,11 +805,25 @@ class BigCommand {
     }
 
     static dodge = (args) => {
+        if (!args?.[1]) {
+            ChatLib.chat(`/${BigCommand.cmdName} dodge <name> <?days?> <?note?>`);
+            return;
+        }
 
+        let name = args[1].toLowerCase();
+        let length = parseInt(args?.[2]);
+        let note = args.splice(isNaN(length) ? 2 : 3)?.join(" ");
+        length = isNaN(length) ? 0 : length;
+
+        getPlayerByName(name, BigPlayer.TaskType.DODGE, [length, note]);
     }
 
     static note = (args) => {
-
+        if (!args?.[1]) {
+            ChatLib.chat(`/${BigCommand.cmdName} note <name> <?note?>`);
+            return;
+        }
+        getPlayerByName(args[1], BigPlayer.TaskType.NOTE, args.slice(2).join(" "));
     }
 
     static view = (args) => {
@@ -666,7 +848,7 @@ class BigCommand {
         let T = args[1].charAt(0).toUpperCase();
         let F = parseInt(args[1].charAt(1));
         let numPlayers = 5;
-        if (!(!args?.[2])) {
+        if (args?.[2]) {
             numPlayers = parseInt(args[2]);
         }
 

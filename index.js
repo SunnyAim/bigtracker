@@ -297,12 +297,6 @@ class BigPlayer {
                 this.printPlayer();
                 break;
             case BigPlayer.TaskType.RUNDONE:
-                ChatLib.chat("RunDone Event");
-                for (let i of Object.keys(ChatHandler.dungeon.splits)) {
-                    for (let j of Object.keys(ChatHandler.dungeon.splits[i])) {
-                        console.log(`${i} ${j} ${ChatHandler.dungeon.splits[i][j][0]} ${ChatHandler.dungeon.splits[i][j][1]}`);
-                    }
-                }
                 let runTimeMS = ChatHandler.dungeon.splits[DungeonRun.SplitType.END][DungeonRun.SplitType.RUN][0] - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.RUN][0];
                 let runTimeTicks = ChatHandler.dungeon.splits[DungeonRun.SplitType.END][DungeonRun.SplitType.RUN][1] - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.RUN][1];
                 this.updateTime(BigPlayer.TaskType.RUNDONE, runTimeMS, runTimeTicks);
@@ -377,7 +371,7 @@ class BigPlayer {
                 let timeLeft = this.playerData["DODGELENGTH"] - ((Date.now() - this.playerData["DODGEDATE"]) / 86400000);
                 // timeLeft /= 8640000; //86400000
                 // timeLeft = Math.round(timeLeft) / 10;
-                ChatLib.chat(`&c>> &4Dodged&7; &f${timeLeft.toFixed(1)} days remaining`);
+                ChatLib.chat(`&c>> &4Dodged&c; &f${timeLeft.toFixed(1)} days remaining`);
             }
             else {
                 ChatLib.chat(`&c>> &4Dodged`);
@@ -446,7 +440,7 @@ class BigPlayer {
 
             if ("SS" in this.playerData) {
                 let avgSS = this.getAvgOfType(BigPlayer.TaskType.SS);
-                console.log(`avgSS ${avgSS}`)
+
                 if (avgSS != null && !isNaN(avgSS[0])) {
                     medString += "&fSS: [";
                     if (avgSS[0] / 1000 < 13) medString += `&a`;
@@ -454,28 +448,25 @@ class BigPlayer {
                     else medString += `&c`;
                     avgSS = Utils.formatMSandTick(avgSS);
                     medString += `${avgSS[0]}, ${avgSS[1]}&f] &7| &r`;
-                    console.log(medString)
                 }
             }
 
             if ("BR" in this.playerData) {
                 let avgBR = this.getAvgOfType(BigPlayer.TaskType.BR); 
-                console.log(`avgBr ${avgBR}`)
+
                 if (avgBR != null && !isNaN(avgBR[0])) {
-                    console.log("NOT ISNAN AVGBR")
                     medString += "&fBR: [";
                     if (avgBR[0] / 1000 < 25) medString += `&a`;
                     else if (avgBR[0] / 1000 < 32) medString += `&e`;
                     else medString += `&c`;
                     avgBR = Utils.formatMSandTick(avgBR);
                     medString += `${avgBR[0]}, ${avgBR[1]}&f] &7| &r`;
-                    console.log(medString)
                 }
             }
 
             if ("CAMP" in this.playerData) {
                 let avgCamp = this.getAvgOfType(DungeonRun.SplitType.CAMP);
-                console.log(`avgCamp ${avgCamp}`)
+
                 if (avgCamp != null && !isNaN(avgCamp[0])) {
                     medString += "&fCamp: [";
                     if (avgCamp[0] / 1000 < 66) medString += `&a`;
@@ -483,13 +474,12 @@ class BigPlayer {
                     else medString += `&c`;
                     avgCamp = Utils.formatMSandTick(avgCamp);
                     medString += `${avgCamp[0]}, ${avgCamp[1]}&f] &7| &r`;
-                    console.log(medString)
                 }
             }
 
             if ("TERMS" in this.playerData) {
                 let avgTerms = this.getAvgOfType(BigPlayer.TaskType.TERMS);
-                console.log(`avgTerms ${avgTerms}`)
+
                 if (avgTerms != null && !isNaN(avgTerms[0])) {
                     medString += "&fTerms: [";
                     if (avgTerms[0] / 1000 < 45) medString += `&a`;
@@ -497,13 +487,12 @@ class BigPlayer {
                     else medString += `&c`;
                     avgTerms = Utils.formatMSandTick(avgTerms);
                     medString += `${avgTerms[0]}, ${avgTerms[1]}&f] &7| &r`;
-                    console.log(medString)
                 }
             }
 
             if ("RUNDONE" in this.playerData) {
                 let avgRun = this.getAvgOfType(BigPlayer.TaskType.RUNDONE);
-                console.log(`avgRun ${avgRun}`)
+
                 if (avgRun != null && !isNaN(avgRun[0])) {
                     medString += "&fRun: [";
                     if (avgRun[0] / 1000 < 330) medString += `&a`;
@@ -511,19 +500,14 @@ class BigPlayer {
                     else medString += `&c`;
                     avgRun = Utils.formatMSandTick(avgRun);
                     medString += `${avgRun[0]}, ${avgRun[1]}&f] &7| &r`;
-                    console.log(medString)
                 }
             }
-
-            console.log(medString)
 
             if (medString != "&9AVGs &7>> ") {
                 ChatLib.chat(medString);
             }
 
-            console.log(this.playerData?.["pre4raten"]);
-            if ("pre4raten" in this.playerData) {
-                console.log("work?")
+            if ("pre4raten" in this.playerData && this.playerData["pre4raten"] != 0) {
                 ChatLib.chat(`&9Pre4 &7>> &f${this.playerData?.["pre4rate"] || 0}/${this.playerData?.["pre4raten"]} (${((this.playerData?.["pre4rate"] || 0) / (this.playerData?.["pre4raten"] || 1) * 100).toFixed(2)}%)`);
             }
         } else {
@@ -558,12 +542,8 @@ class BigPlayer {
 
     getAvgOfType(updateType) {
         if (!this.playerData?.[updateType] || this.playerData[updateType].length < 1) {
-            console.log(`${updateType} returning null`)
             return null;
         }
-
-        console.log(updateType)
-        this.playerData[updateType].forEach(x => console.log(x));
 
         let tempMSArr = this.playerData[updateType].map( (x) => x[0]).sort((a, b) => a - b);
         let tempTickArr = this.playerData[updateType].map( (x) => x[1]).sort((a, b) => a - b);

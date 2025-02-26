@@ -19,14 +19,15 @@ const runData = new PogObject("temptracker", {
 }, "bigloot.json");
 
 
-if (data.firstTime) {
-    data.firstTime = false;
-    data.save();
-    runData.save();
-
-    if (!FileLib.exists("./config/ChatTriggers/modules/temptracker/bigplayers")) {
-        new File("./config/ChatTriggers/modules/temptracker/bigplayers").mkdirs();
-    }
+const getFileTabCompleteNames = () => {
+    new Thread( () => {
+        let fileNames = new File("./config/ChatTriggers/modules/temptracker/bigplayers").list();
+        if (fileNames == null) return;
+        for (let i = 0; i < fileNames.length; i++) {
+            let player = new BigPlayer(fileNames[i].replace(".json", ""));
+            tabCompleteNames.add(player.playerData["USERNAME"]);
+        }
+    }).start();
 }
 
 
@@ -39,6 +40,7 @@ const getPlayerByName = (name, task=null, extra=null) => {
     
     if (namesToUUID?.[name] && playerData[namesToUUID[name]]) {
         playerData[namesToUUID[name]].doTask(task, extra);
+        return;
     }
 
     request(`https://api.mojang.com/users/profiles/minecraft/${name}`)
@@ -46,9 +48,9 @@ const getPlayerByName = (name, task=null, extra=null) => {
             const UUID = JSON.parse(res)?.id;
             NAME = JSON.parse(res)?.name?.toLowerCase();
             namesToUUID[name] = UUID;
-            tabCompleteNames.add(name);
+            tabCompleteNames.add(NAME);
 
-            let player = new BigPlayer(UUID, name);
+            let player = new BigPlayer(UUID, NAME);
             player.doTask(task, extra);
             playerData[UUID] = player;
         }
@@ -71,7 +73,7 @@ class ChatHandler {
 
     static runText(text) {
         // yes this is supposed to write the type of chest reward to the file because why not.
-        if (text.match(/\s+(WOOD|GOLD|EMERALD|OBSIDIAN|BEDROCK) CHEST REWARDS/)) {
+        if (text.match(/\s+(WOOD|GOLD|DIAMOND|EMERALD|OBSIDIAN|BEDROCK) CHEST REWARDS/)) {
             ChatHandler.getLoot = true;
 
             if (ChatHandler.lastGuiName == "" && ChatHandler.dungeon != null) {
@@ -256,11 +258,15 @@ class BigPlayer {
         DODGE: "DODGE"
     });
 
-    constructor(UUID, username="") {
-        this.playerData = new PogObject("temptracker/bigplayers", {
-            UUID: UUID,
-            USERNAME: username?.toLowerCase()
-        }, `${UUID}.json`);
+    constructor(UUID, username="", extra=null) {
+        if (extra == null) {
+            this.playerData = new PogObject("temptracker/bigplayers", {
+                UUID: UUID,
+                USERNAME: username?.toLowerCase()
+            }, `${UUID}.json`);
+        } else {
+            this.playerData = new PogObject("temptracker/bigplayers", extra, `${UUID}.json`);
+        }
 
         this.save();
     };
@@ -291,8 +297,14 @@ class BigPlayer {
                 this.printPlayer();
                 break;
             case BigPlayer.TaskType.RUNDONE:
-                let runTimeMS = ChatHandler.dungeon.split[DungeonRun.SplitType.END][DungeonRun.SplitType.RUN][0] - ChatHandler.dungeon.split[DungeonRun.SplitType.START][DungeonRun.SplitType.RUN][0];
-                let runTimeTicks = ChatHandler.dungeon.split[DungeonRun.SplitType.END][DungeonRun.SplitType.RUN][1] - ChatHandler.dungeon.split[DungeonRun.SplitType.START][DungeonRun.SplitType.RUN][1];
+                ChatLib.chat("RunDone Event");
+                for (let i of Object.keys(ChatHandler.dungeon.splits)) {
+                    for (let j of Object.keys(ChatHandler.dungeon.splits[i])) {
+                        console.log(`${i} ${j} ${ChatHandler.dungeon.splits[i][j][0]} ${ChatHandler.dungeon.splits[i][j][1]}`);
+                    }
+                }
+                let runTimeMS = ChatHandler.dungeon.splits[DungeonRun.SplitType.END][DungeonRun.SplitType.RUN][0] - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.RUN][0];
+                let runTimeTicks = ChatHandler.dungeon.splits[DungeonRun.SplitType.END][DungeonRun.SplitType.RUN][1] - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.RUN][1];
                 this.updateTime(BigPlayer.TaskType.RUNDONE, runTimeMS, runTimeTicks);
                 this.playerData["RUNS"] = (this.playerData["RUNS"] || 0) + 1;
                 this.playerData["CLASS"] = ChatHandler?.dungeon?.partyMembers?.[this.playerData?.["USERNAME"]];
@@ -345,14 +357,14 @@ class BigPlayer {
         } else {
             this.playerData["NOTE"] = noteStr;
             ChatLib.chat(`&b${this.playerData["USERNAME"]}`);
-            ChatLib.chat(`&8Note &7>> &f${this.playerData["NOTE"]}`);
+            ChatLib.chat(`&9Note &7>> &f${this.playerData["NOTE"]}`);
         }
     }
 
     printPlayer() {
         Utils.chatMsgClickURL(`&7>> &b${this.playerData["USERNAME"]}`, `https://namemc.com/search?q=${this.playerData["UUID"]}`);
         if (this.playerData?.["CLASS"] != undefined) {
-            ChatLib.chat(`&8Class &7>> &f${this.playerData["CLASS"]}`);
+            ChatLib.chat(`&9Class &7>> &f${this.playerData["CLASS"]}`);
         }
 
         if (this.playerData?.["NOTE"] != undefined && this.playerData["NOTE"] != "") {
@@ -361,25 +373,25 @@ class BigPlayer {
 
         if (this.playerData?.["DODGE"]) {
             if (this.playerData?.["DODGELENGTH"]) {
-                let timeLeft = Date.now() - this.playerData["DODGEDATE"];
-                timeLeft /= 8640000; //86400000
-                timeLeft = Math.round(timeLeft) / 10;
-                ChatLib.chat(`&7>> &bDodged&7; &f${timeLeft} days remaining`);
+                let timeLeft = this.playerData["DODGELENGTH"] - ((Date.now() - this.playerData["DODGEDATE"]) / 86400000);
+                // timeLeft /= 8640000; //86400000
+                // timeLeft = Math.round(timeLeft) / 10;
+                ChatLib.chat(`&c>> &4Dodged&7; &f${timeLeft.toFixed(1)} days remaining`);
             }
             else {
-                ChatLib.chat(`&7>> &bDodged`);
+                ChatLib.chat(`&c>> &4Dodged`);
             }
         }
 
         if (this.playerData?.["RUNS"]) {
-            ChatLib.chat(`&8Runs &7>> &f${this.playerData["RUNS"]}`);
+            ChatLib.chat(`&9Runs &7>> &f${this.playerData["RUNS"]}`);
 
             if (this.playerData?.["DEATHS"]) {
-                ChatLib.chat(`&8DPR &7>> &f${(this.playerData["DEATHS"] / this.playerData["RUNS"]).toFixed(2)}`);
+                ChatLib.chat(`&9DPR &7>> &f${(this.playerData["DEATHS"] / this.playerData["RUNS"]).toFixed(2)}`);
             }
 
             if (this.playerData?.["LASTRUN"]) {
-                ChatLib.chat(`&8Last Run &7>> &f${Math.round(ms / 8640000) / 10}d ago`);
+                ChatLib.chat(`&9Last Run &7>> &f${((Date.now() - this.playerData["LASTRUN"]) / 86400000).toFixed(2)}d ago`);
             }
 
             let pbString = "&9PBs &7>> ";
@@ -387,36 +399,40 @@ class BigPlayer {
             if (this.playerData?.["SSpb"]) {
                 pbString += "&fSS: [";
                 let pbSS = this.playerData["SSpb"];
-                if (pbSS[0] < 12) pbString += `&a`;
-                else if (pbSS[0] < 13) pbString += `&e`;
+                if (pbSS[0] / 1000 < 12) pbString += `&a`;
+                else if (pbSS[0] / 1000 < 13) pbString += `&e`;
                 else pbString += `&c`;
+                pbSS = Utils.formatMSandTick(pbSS);
                 pbString += `${pbSS[0]}, ${pbSS[1]}&f] &7| &r`;
             }
 
             if (this.playerData?.["TERMSpb"]) {
                 pbString += "&fTerms: [";
                 let pbTerms = this.playerData["TERMSpb"];
-                if (pbTerms < 40) pbString += `&a`;
-                else if (pbTerms < 45) pbString += `&e`;
+                if (pbTerms[0] / 1000 < 40) pbString += `&a`;
+                else if (pbTerms[0] / 1000 < 45) pbString += `&e`;
                 else pbString += `&c`;
+                pbTerms = Utils.formatMSandTick(pbTerms);
                 pbString += `${pbTerms}&f] &7| &r`;
             }
 
             if (this.playerData?.["RUNDONEpb"]) {
                 pbString += "&fRun: [";
                 let pbRun = this.playerData["RUNDONEpb"];
-                if (pbRun[0] < 310) pbString += `&a`;
-                else if (pbRun[0] < 330) pbString += `&e`;
+                if (pbRun[0] / 1000 < 310) pbString += `&a`;
+                else if (pbRun[0] / 1000 < 330) pbString += `&e`;
                 else pbString += `&c`;
+                pbRun = Utils.formatMSandTick(pbRun);
                 pbString += `${pbRun[0]}, ${pbRun[1]}&f] &7| &r`;
             }
 
             if (this.playerData?.["CAMPpb"]) {
                 pbString += "&fCamp: [";
                 let pbCamp = this.playerData["CAMPpb"];
-                if (pbCamp[0] < 61) pbString += `&a`;
-                else if (pbCamp[0] < 65) pbString += `&e`;
+                if (pbCamp[0] / 1000 < 61) pbString += `&a`;
+                else if (pbCamp[0] / 1000 < 65) pbString += `&e`;
                 else pbString += `&c`;
+                pbCamp = Utils.formatMSandTick(pbCamp);
                 pbString += `${pbCamp[0]}, ${pbCamp[1]}&f] &7| &r`;
             }
 
@@ -427,56 +443,86 @@ class BigPlayer {
 
             let medString = "&9AVGs &7>> ";
 
-            if (this.playerData?.["SS"]?.length) {
+            if ("SS" in this.playerData) {
                 let avgSS = this.getAvgOfType(BigPlayer.TaskType.SS);
-                medString += "&fSS: [";
-                if (avgSS[0] < 13) medString += `&a`;
-                else if (avgSS[0] < 14) medString += `&e`;
-                else medString += `&c`;
-                medString += `${avgSS[0]}, ${avgSS[1]}&f] &7| &r`;
+                console.log(`avgSS ${avgSS}`)
+                if (avgSS != null && !isNaN(avgSS[0])) {
+                    medString += "&fSS: [";
+                    if (avgSS[0] / 1000 < 13) medString += `&a`;
+                    else if (avgSS[0] / 1000 < 14) medString += `&e`;
+                    else medString += `&c`;
+                    avgSS = Utils.formatMSandTick(avgSS);
+                    medString += `${avgSS[0]}, ${avgSS[1]}&f] &7| &r`;
+                    console.log(medString)
+                }
             }
 
-            if (this.playerData?.["BR"]?.length) {
-                let avgBR = this.getAvgOfType(BigPlayer.TaskType.BR);
-                medString += "&fBR: [";
-                if (avgBR[0] < 25) medString += `&a`;
-                else if (avgBR[0] < 32) medString += `&e`;
-                else medString += `&c`;
-                medString += `${avgBR[0]}, ${avgBR[1]}&f] &7| &r`;
+            if ("BR" in this.playerData) {
+                let avgBR = this.getAvgOfType(BigPlayer.TaskType.BR); 
+                console.log(`avgBr ${avgBR}`)
+                if (avgBR != null && !isNaN(avgBR[0])) {
+                    console.log("NOT ISNAN AVGBR")
+                    medString += "&fBR: [";
+                    if (avgBR[0] / 1000 < 25) medString += `&a`;
+                    else if (avgBR[0] / 1000 < 32) medString += `&e`;
+                    else medString += `&c`;
+                    avgBR = Utils.formatMSandTick(avgBR);
+                    medString += `${avgBR[0]}, ${avgBR[1]}&f] &7| &r`;
+                    console.log(medString)
+                }
             }
 
-            if (this.playerData?.["CAMP"]?.length) {
-                let avgCamp = this.getAvgOfType(BigPlayer.TaskType.CAMP);
-                medString += "&fCamp: [";
-                if (avgCamp[0] < 66) medString += `&a`;
-                else if (avgCamp[0] < 70) medString += `&e`;
-                else medString += `&c`;
-                medString += `${avgCamp[0]}, ${avgCamp[1]}&f] &7| &r`;
+            if ("CAMP" in this.playerData) {
+                let avgCamp = this.getAvgOfType(DungeonRun.SplitType.CAMP);
+                console.log(`avgCamp ${avgCamp}`)
+                if (avgCamp != null && !isNaN(avgCamp[0])) {
+                    medString += "&fCamp: [";
+                    if (avgCamp[0] / 1000 < 66) medString += `&a`;
+                    else if (avgCamp[0] / 1000 < 70) medString += `&e`;
+                    else medString += `&c`;
+                    avgCamp = Utils.formatMSandTick(avgCamp);
+                    medString += `${avgCamp[0]}, ${avgCamp[1]}&f] &7| &r`;
+                    console.log(medString)
+                }
             }
 
-            if (this.playerData?.["TERMS"]?.length) {
+            if ("TERMS" in this.playerData) {
                 let avgTerms = this.getAvgOfType(BigPlayer.TaskType.TERMS);
-                medString += "&fTerms: [";
-                if (avgTerms[0] < 45) medString += `&a`;
-                else if (avgTerms[0] < 51) medString += `&e`;
-                else medString += `&c`;
-                medString += `${avgTerms[0]}, ${avgTerms[1]}&f] &7| &r`;
+                console.log(`avgTerms ${avgTerms}`)
+                if (avgTerms != null && !isNaN(avgTerms[0])) {
+                    medString += "&fTerms: [";
+                    if (avgTerms[0] / 1000 < 45) medString += `&a`;
+                    else if (avgTerms[0] / 1000 < 51) medString += `&e`;
+                    else medString += `&c`;
+                    avgTerms = Utils.formatMSandTick(avgTerms);
+                    medString += `${avgTerms[0]}, ${avgTerms[1]}&f] &7| &r`;
+                    console.log(medString)
+                }
             }
 
-            if (this.playerData?.["RUNDONE"]?.length) {
+            if ("RUNDONE" in this.playerData) {
                 let avgRun = this.getAvgOfType(BigPlayer.TaskType.RUNDONE);
-                medString += "&fRun: [";
-                if (avgRun[0] < 330) medString += `&a`;
-                else if (avgRun[0] < 360) medString += `&e`;
-                else medString += `&c`;
-                medString += `${avgRun[0]}, ${avgRun[1]}&f] &7| &r`;
+                console.log(`avgRun ${avgRun}`)
+                if (avgRun != null && !isNaN(avgRun[0])) {
+                    medString += "&fRun: [";
+                    if (avgRun[0] / 1000 < 330) medString += `&a`;
+                    else if (avgRun[0] / 1000 < 360) medString += `&e`;
+                    else medString += `&c`;
+                    avgRun = Utils.formatMSandTick(avgRun);
+                    medString += `${avgRun[0]}, ${avgRun[1]}&f] &7| &r`;
+                    console.log(medString)
+                }
             }
+
+            console.log(medString)
 
             if (medString != "&9AVGs &7>> ") {
                 ChatLib.chat(medString);
             }
 
-            if (this.playerData?.["pre4raten"]) {
+            console.log(this.playerData?.["pre4raten"]);
+            if ("pre4raten" in this.playerData) {
+                console.log("work?")
                 ChatLib.chat(`&9Pre4 &7>> &f${this.playerData?.["pre4rate"] || 0}/${this.playerData?.["pre4raten"]} (${((this.playerData?.["pre4rate"] || 0) / (this.playerData?.["pre4raten"] || 1) * 100).toFixed(2)}%)`);
             }
         } else {
@@ -510,9 +556,13 @@ class BigPlayer {
     }
 
     getAvgOfType(updateType) {
-        if (!this.playerData?.[updateType]) {
+        if (!this.playerData?.[updateType] || this.playerData[updateType].length < 1) {
+            console.log(`${updateType} returning null`)
             return null;
         }
+
+        console.log(updateType)
+        this.playerData[updateType].forEach(x => console.log(x));
 
         let tempMSArr = this.playerData[updateType].map( (x) => x[0]).sort((a, b) => a - b);
         let tempTickArr = this.playerData[updateType].map( (x) => x[1]).sort((a, b) => a - b);
@@ -526,16 +576,9 @@ class BigPlayer {
     }
 
     pre4(extra) {
-        if (!this.playerData.pre4raten) {
-            this.playerData.pre4rate = 0;
-            this.playerData.pre4raten = 0;
-        }
+        this.playerData.pre4raten = (this.playerData.pre4raten || 0) + 1;
+        this.playerData.pre4rate = (this.playerData.pre4rate || 0) + (extra ? 1 : 0);
 
-        if (extra) {
-            this.playerData.pre4rate += 1;
-        }
-
-        this.playerData.pre4raten += 1;
         this.save();
     }
 }
@@ -688,6 +731,24 @@ class DungeonRun {
 
 
 class Utils {
+    static formatMSandTick(times) {
+        let seconds = times[0] / 1000;
+        let ticks = times[1] / 20;
+
+        let timeStr = "";
+        let tickStr = "";
+        if (seconds > 60) {
+            timeStr += `${Math.trunc(seconds / 60)}m `
+        }
+        timeStr += `${(seconds % 60).toFixed(2)}s`;
+        if (ticks > 60) {
+            tickStr += `${Math.trunc(ticks / 60)}m `
+        }
+        tickStr += `${(ticks % 60).toFixed(2)}s`;
+
+        return [timeStr, tickStr];
+    }
+
     static chatMsgClickURL(msgTxt, clickTxt) {
         new TextComponent(msgTxt).setClick("open_url", clickTxt).chat();
     }
@@ -746,6 +807,10 @@ class Utils {
             return [match[1], parseInt(match[2])];
         }
     }
+
+    static secondsToFormatted(seconds) {
+        return `${Math.trunc(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+    }
 }
 
 
@@ -788,7 +853,7 @@ register("packetSent", (packet, event) => {
 class BigCommand {
     static tabCommands = ["floorstats", "scoreboard", "note", "dodge"];
     static cmdName = "large";
-    static chestTypes = ["WOOD CHEST REWARDS", "GOLD CHEST REWARDS", "EMERALD CHEST REWARDS", "OBSIDIAN CHEST REWARDS", "BEDROCK CHEST REWARDS"];
+    static chestTypes = ["WOOD CHEST REWARDS", "GOLD CHEST REWARDS", "DIAMOND CHEST REWARDS", "EMERALD CHEST REWARDS", "OBSIDIAN CHEST REWARDS", "BEDROCK CHEST REWARDS"];
     static essenceTypes = ["Undead Essence", "Wither Essence"];
 
     static help = () => {
@@ -796,6 +861,10 @@ class BigCommand {
     }
 
     static loot = (floor) => {
+        if (floor == undefined) {
+            ChatLib.chat("No floor entered, defaulting to M7");
+            floor = "M7";
+        }
         floor = floor.toUpperCase();
         let floorStr = "";
         if (floor.charAt(0) == "M") {
@@ -880,7 +949,7 @@ class BigCommand {
             numPlayers = parseInt(args[2]);
         }
 
-        if (NaN(F) || NaN(numPlayers)) {
+        if (isNaN(F) || isNaN(numPlayers)) {
             ChatLib.chat("ex: /big floorstats m7 2");
             return;
         }
@@ -888,33 +957,15 @@ class BigCommand {
         let temp = runData?.[T]?.[F]?.[numPlayers];
         
         if (!temp) {
-            ChatLib.chat(`Data not found for ${T} ${F} ${numPlayers}`);
+            ChatLib.chat(`§cData not found for Type: §f${T}§c Floor: §f${F}§c with §f${numPlayers}§c Players`);
             return;
         }
 
-        ChatLib.chat(`Stats for ${T}${F} with ${numPlayers} players`);
-        ChatLib.chat(`Runs: ${temp.num}`);
-        ChatLib.chat(`Fastest Run: ${Utils.secondsToFormatted(temp.fastest)}`);
-        ChatLib.chat(`Average Run: ${Utils.secondsToFormatted(temp.avg)}`);
-        ChatLib.chat(`Slowest Run: ${Utils.secondsToFormatted(temp.slowest)}`);
-    }
-
-    static tabCompletion = (args) => {
-        let name = "";
-
-        if (args.length == 0 || args?.[0]?.trim() == "") {
-            return BigCommand.tabCommands;
-        }
-        
-        let namesThatStartWith = [];
-    
-        tabCompleteNames.forEach(i => {
-            if (i.startsWith((args[args.length - 1])?.toLowerCase())) {
-                namesThatStartWith.push(i);
-            }
-        });
-    
-        return namesThatStartWith;
+        ChatLib.chat(`§7Stats for §${T == "F" ? "a" : "c"}${T}${F} §7with §f${numPlayers} §7players`);
+        ChatLib.chat(`§7Runs§f: ${temp.num}`);
+        ChatLib.chat(`§aFastest Run§f: ${Utils.secondsToFormatted(temp.fastest)}`);
+        ChatLib.chat(`§dAverage Run§f: ${Utils.secondsToFormatted(temp.avg)}`);
+        ChatLib.chat(`§6Slowest Run§f: ${Utils.secondsToFormatted(temp.slowest)}`);
     }
 }
 
@@ -948,6 +999,101 @@ register("command", (...args) => {
     }
     
 
-}).setName(BigCommand.cmdName).setTabCompletions( (args) => {
-    return BigCommand.tabCompletion(args);
-});
+}).setTabCompletions( (args) => {
+        let name = "";
+
+        if (!args || args.length == 0 || args?.[0]?.trim() == "") {
+            return BigCommand.tabCommands;
+        }
+        
+        let namesThatStartWith = [];
+    
+        tabCompleteNames.forEach(i => {
+            if (i.startsWith((args[args.length - 1])?.toLowerCase())) {
+                namesThatStartWith.push(i);
+            }
+        });
+    
+        return namesThatStartWith;
+}).setName(BigCommand.cmdName);
+
+
+if (data.firstTime) {
+    data.firstTime = false;
+    data.save();
+    runData.save();
+
+    if (!FileLib.exists("./config/ChatTriggers/modules/temptracker/bigplayers")) {
+        new File("./config/ChatTriggers/modules/temptracker/bigplayers").mkdirs();
+    }
+
+    if (FileLib.exists("./config/ChatTriggers/modules/temptracker/players")) {
+        // go through each player and convert to new system.
+        let files = new File("./config/ChatTriggers/modules/temptracker/players").list();
+        for (let i = 0; i < files.length; i++) {
+            try {
+                let fileData = FileLib.read(`./config/ChatTriggers/modules/temptracker/players/${files[i]}`);
+                fileData = JSON.parse(fileData);
+                let convert = {
+                    UUID: fileData["UUID"],
+                    USERNAME: fileData["USERNAME"],
+                    NOTE: fileData["NOTE"],
+                    DODGE: fileData["DODGE"],
+                    DODGELENGTH: fileData["DODGELENGTH"],
+                    DODGEDATE: fileData["DODGEDATE"],
+                    RUNS: fileData["NUMRUNS"],
+                    LASTRUN: fileData["LASTSESSION"],
+                    DEATHS: fileData["DEATHS"],
+                    pre4rate: (fileData?.["PRE4RATE"] || 0),
+                    pre4raten: (fileData?.["PRE4RATEN"] || 0)
+                }
+
+                
+                if (fileData["SSTRACKING"] && fileData["SSTRACKING"].length != 0) {
+                    let tempSS = [];
+                    fileData["SSTRACKING"].forEach(ss => tempSS.push([ss * 1000, ss * 20]));
+                    convert["SS"] = tempSS;
+                    convert["SSpb"] = [fileData["SSPB"] * 1000, fileData["SSPB"] * 20];
+                }
+
+                
+                if (fileData["BRTRACKING"] && fileData["BRTRACKING"].length != 0) {
+                    let tempBR = [];
+                    fileData["BRTRACKING"].forEach(br => tempBR.push([br * 1000, br * 20]));
+                    convert["BR"] = tempBR;
+                }
+
+                
+                if (fileData["TERMSTRACKING"] && fileData["TERMSTRACKING"].length != 0) {
+                    let tempTerms = [];
+                    fileData["TERMSTRACKING"].forEach(terms => tempTerms.push([terms * 1000, terms * 20]));
+                    convert["TERMS"] = tempTerms;
+                    convert["TERMSpb"] = [fileData["TERMSPB"] * 1000, fileData["TERMSPB"] * 20];
+                }
+
+                
+                if (fileData["RUNTIMETRACKING"] && fileData["RUNTIMETRACKING"].length != 0) {
+                    let tempRun = [];
+                    fileData["RUNTIMETRACKING"].forEach(run => tempRun.push([run * 1000, run * 20]));
+                    convert["RUNDONE"] = tempRun;
+                    convert["RUNDONEpb"] = [fileData["RUNPB"] * 1000, fileData["RUNPB"] * 20];
+                }
+
+                
+                if (fileData["CAMPSTRACKING"] && fileData["CAMPSTRACKING"].length != 0) {
+                    let tempCamp = [];
+                    fileData["CAMPSTRACKING"].forEach(camp => tempCamp.push([camp * 1000, camp * 20]));
+                    convert["CAMP"] = tempCamp;
+                    convert["CAMPpb"] = [fileData["CAMPPB"] * 1000, fileData["CAMPPB"] * 20];
+                }
+
+                new BigPlayer(convert.UUID, convert.USERNAME, convert);
+                console.log(`Successfully converted ${convert.USERNAME} to new system.`);
+            } catch (e) {
+                console.log(e);
+            }
+        }
+    }
+}
+
+getFileTabCompleteNames();

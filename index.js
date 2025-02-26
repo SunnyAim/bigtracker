@@ -11,7 +11,9 @@ const namesToUUID = {};
 const tabCompleteNames = new Set();
 
 const data = new PogObject("bigtracker", {
-    firstTime: true
+    firstTime: true,
+    autoKick: false,
+    sayReason: false
 }, "settings.json");
 
 const runData = new PogObject("bigtracker", {
@@ -264,6 +266,11 @@ class BigPlayer {
                 UUID: UUID,
                 USERNAME: username?.toLowerCase()
             }, `${UUID}.json`);
+
+            if (username != "" && username != this.playerData["USERNAME"]) {
+                ChatLib.chat(`${username} changed it's name from ${this.playerData["USERNAME"]}`);
+                this.playerData["USERNAME"] = username;
+            }
         } else {
             this.playerData = new PogObject("bigtracker/bigplayers", extra, `${UUID}.json`);
         }
@@ -282,6 +289,8 @@ class BigPlayer {
 
         switch (task) {
             case BigPlayer.TaskType.CHECK:
+                this.printPlayer();
+                this.check();
                 break;
             case BigPlayer.TaskType.UPDATE:
                 this.updateTime(extra[0], extra[1], extra[2]);
@@ -345,6 +354,38 @@ class BigPlayer {
         }
     }
 
+    check() {
+        if (!data.autoKick) return;
+
+        if (this.playerData?.["DODGE"]) {
+            let timeLeft = 0;
+            if (this.playerData?.["DODGELENGTH"]) {
+                timeLeft = this.playerData["DODGELENGTH"] - ((Date.now() - this.playerData["DODGEDATE"]) / 86400000);
+                if (timeLeft < 0) {
+                    this.playerData["DODGE"] = false;
+                    this.playerData["DODGELENGTH"] = 0;
+                    this.playerData["DODGEDATE"] = 0;
+                    ChatLib.chat("&7>> Dodge Expired");
+                    this.save();
+                    return;
+                }
+            }
+
+            if (data.sayReason && "NOTE" in this.playerData && this.playerData["NOTE"] != "") {
+                if (timeLeft == 0) {
+                    ChatLib.command(`pc ${this.playerData["NOTE"]}`)
+                } else {
+                    ChatLib.command(`pc ${this.playerData["NOTE"]}. try again in ${timeLeft.toFixed(1)} days.`);
+                }
+            }
+
+            setTimeout( () => {
+                ChatLib.command(`p kick ${this.playerData["USERNAME"]}`);
+            }, 500);
+        }
+    }
+
+
     note(noteStr="") {
         if (noteStr == "") {
             this.playerData["NOTE"] = "";
@@ -369,8 +410,6 @@ class BigPlayer {
         if (this.playerData?.["DODGE"]) {
             if (this.playerData?.["DODGELENGTH"]) {
                 let timeLeft = this.playerData["DODGELENGTH"] - ((Date.now() - this.playerData["DODGEDATE"]) / 86400000);
-                // timeLeft /= 8640000; //86400000
-                // timeLeft = Math.round(timeLeft) / 10;
                 ChatLib.chat(`&c>> &4Dodged&c; &f${timeLeft.toFixed(1)} days remaining`);
             }
             else {
@@ -615,12 +654,6 @@ class DungeonRun {
 
     doSplit(type, or) {
         this.splits[or][type] = [Date.now(), tick.getTotalTicks()];
-        // start run -> nothing
-        // start camp -> update avg br for arch and mage
-        // end camp -> update avg camp for mage
-        // start terms -> nothing
-        // end terms -> update avg terms for everyone, maybe print splits/ticktime? idk
-        // end run -> nothing.
 
         switch (or) {
             case DungeonRun.SplitType.START:
@@ -832,7 +865,7 @@ register("packetSent", (packet, event) => {
 
 
 class BigCommand {
-    static tabCommands = ["floorstats", "scoreboard", "note", "dodge"];
+    static tabCommands = ["dodge", "note", "floorstats", "loot", "autokick", "sayreason"];
     static cmdName = "big";
     static chestTypes = ["WOOD CHEST REWARDS", "GOLD CHEST REWARDS", "DIAMOND CHEST REWARDS", "EMERALD CHEST REWARDS", "OBSIDIAN CHEST REWARDS", "BEDROCK CHEST REWARDS"];
     static essenceTypes = ["Undead Essence", "Wither Essence"];
@@ -957,6 +990,8 @@ register("command", (...args) => {
         return;
     }
 
+    args[0] = args[0].toLowerCase();
+
     switch (args[0]) {
         case "floorstats":
             BigCommand.floorStats(args);
@@ -974,12 +1009,20 @@ register("command", (...args) => {
         case "chests":
             BigCommand.loot(args[1]);
             break;
+        case "autokick":
+            data.autoKick = !data.autoKick;
+            ChatLib.chat(`autokick ${data.autoKick ? "enabled" : "disabled"}`);
+            data.save();
+            break;
+        case "sayreason":
+            data.sayReason = !data.sayReason;
+            ChatLib.chat(`sayreason ${data.sayReason ? "enabled" : "disabled"}`);
+            data.save();
+            break;
         default:
             BigCommand.view(args);
             break;
     }
-    
-
 }).setTabCompletions( (args) => {
         let name = "";
 
@@ -994,6 +1037,14 @@ register("command", (...args) => {
                 namesThatStartWith.push(i);
             }
         });
+
+        if (args.length < 2) {
+            BigCommand.tabCommands.forEach(i => {
+                if (i.startsWith((args[args.length - 1])?.toLowerCase())) {
+                    namesThatStartWith.push(i);
+                }
+            });
+        }
     
         return namesThatStartWith;
 }).setName(BigCommand.cmdName);

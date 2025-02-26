@@ -853,7 +853,7 @@ register("packetSent", (packet, event) => {
 
 class BigCommand {
     static tabCommands = ["floorstats", "scoreboard", "note", "dodge"];
-    static cmdName = "large";
+    static cmdName = "big";
     static chestTypes = ["WOOD CHEST REWARDS", "GOLD CHEST REWARDS", "DIAMOND CHEST REWARDS", "EMERALD CHEST REWARDS", "OBSIDIAN CHEST REWARDS", "BEDROCK CHEST REWARDS"];
     static essenceTypes = ["Undead Essence", "Wither Essence"];
 

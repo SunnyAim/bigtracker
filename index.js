@@ -763,6 +763,10 @@ class Utils {
         return [timeStr, tickStr];
     }
 
+    static chatMsgClickCMD(msgTxt, cmd) {
+        new TextComponent(msgTxt).setClick("run_command", cmd).chat();
+    }
+
     static chatMsgClickURL(msgTxt, clickTxt) {
         new TextComponent(msgTxt).setClick("open_url", clickTxt).chat();
     }
@@ -872,6 +876,34 @@ class BigCommand {
 
     static help = () => {
         
+    }
+
+    static printAllPlayers() {
+        new Thread( () => {
+            let files = new File("./config/ChatTriggers/modules/bigtracker/bigplayers").list();
+
+            for (let i = 0; i < files.length; i++) {
+                let tempPlayer = new BigPlayer(files[i].replace(".json", ""));
+                if (!tempPlayer || (!tempPlayer.playerData?.["DODGE"] && !tempPlayer.playerData?.["NOTE"])) {
+                    continue;
+                }
+
+                let playerStr = `&7>> &b${tempPlayer.playerData["USERNAME"]}&f:&7 `;
+                if (tempPlayer.playerData?.["NOTE"] && tempPlayer.playerData["NOTE"] != "") {
+                    playerStr += tempPlayer.playerData["NOTE"];
+                }
+                
+                if (tempPlayer.playerData?.["DODGE"]) {
+                    if ("DODGELENGTH" in tempPlayer.playerData && tempPlayer.playerData["DODGELENGTH"] != 0) {
+                        let timeLeft = tempPlayer.playerData["DODGELENGTH"] - ((Date.now() - tempPlayer.playerData["DODGEDATE"]) / 86400000);
+                        playerStr += ` (dodged; ${timeLeft.toFixed(1)} days remaining)`;
+                    } else {
+                        playerStr += " (dodged)";
+                    }
+                }
+                Utils.chatMsgClickCMD(playerStr, `/big ${tempPlayer.playerData["USERNAME"]}`);
+            }
+        }).start();
     }
 
     static loot = (floor) => {
@@ -1005,6 +1037,9 @@ register("command", (...args) => {
         case "note":
             BigCommand.note(args);
             break;
+        case "list":
+            BigCommand.printAllPlayers();
+            break;
         case "loot":
         case "chests":
             BigCommand.loot(args[1]);
@@ -1050,14 +1085,14 @@ register("command", (...args) => {
 }).setName(BigCommand.cmdName);
 
 
+if (!FileLib.exists("./config/ChatTriggers/modules/bigtracker/bigplayers")) {
+    new File("./config/ChatTriggers/modules/bigtracker/bigplayers").mkdirs();
+}
+
 if (data.firstTime) {
     data.firstTime = false;
     data.save();
     runData.save();
-
-    if (!FileLib.exists("./config/ChatTriggers/modules/bigtracker/bigplayers")) {
-        new File("./config/ChatTriggers/modules/bigtracker/bigplayers").mkdirs();
-    }
 
     if (FileLib.exists("./config/ChatTriggers/modules/bigtracker/players")) {
         // go through each player and convert to new system.

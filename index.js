@@ -19,7 +19,7 @@ const data = new PogObject("bigtracker", {
 const runData = new PogObject("bigtracker", {
     chests: {}
 }, "bigloot.json");
-
+// view file
 
 const getFileTabCompleteNames = () => {
     new Thread( () => {
@@ -573,8 +573,10 @@ class BigPlayer {
             let avg = this.getAvgOfType(updateType);
             ChatLib.chat(`&7> ${this.playerData.USERNAME} > &f${updateType} completed in ${(compMS / 1000).toFixed(2)} (${compTicks / 20}t) pb: [${(this.playerData[updateType + "pb"][0] / 1000).toFixed(2)}, ${this.playerData[updateType + "pb"][1] / 20}] avg: [${(avg[0] / 1000).toFixed(2)}, ${avg[1] / 20}]`);
         }
-        
-        if (this.playerData[updateType + "pb"][0] > compMS) {
+
+        if (!this.playerData[updateType + "pb"]) {
+            this.playerData[updateType + "pb"] = [compMS, compTicks];
+        } else if (this.playerData[updateType + "pb"][0] > compMS) {
             this.playerData[updateType + "pb"] = [compMS, compTicks];
         }
     }

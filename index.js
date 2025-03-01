@@ -179,12 +179,12 @@ class ChatHandler {
                 return;
             }
 
-            if (!ChatHandler.dungeon.pre4Done && ChatHandler.dungeon.splits[DungeonRun.SplitType.START]?.[DungeonRun.SplitType.TERMS] && this.partyMembers?.[name] == "Berserk") {
+            if (!ChatHandler.dungeon.pre4Done && ChatHandler.dungeon.splits[DungeonRun.SplitType.START]?.[DungeonRun.SplitType.TERMS] && this.partyMembers?.[name] == "Berserk" && Date.now() - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.TERMS][0] < 17000) {
                 ChatHandler.dungeon.pre4Done = true; 
                 getPlayerByName(name, BigPlayer.TaskType.PRE4, false);
             }
 
-            if (!ChatHandler.dungeon.pre4Done && ChatHandler.dungeon.splits[DungeonRun.SplitType.START]?.[DungeonRun.SplitType.TERMS] && Date.now() - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.TERMS] > 17000) {
+            if (!ChatHandler.dungeon.pre4Done && ChatHandler.dungeon.splits[DungeonRun.SplitType.START]?.[DungeonRun.SplitType.TERMS] && Date.now() - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.TERMS][0] > 17000) {
                 ChatHandler.dungeon.pre4Done = true;
                 for (let name of Object.keys(ChatHandler.dungeon.partyMembers)) {
                     if (ChatHandler.dungeon.partyMembers[name] == "Berserk") {

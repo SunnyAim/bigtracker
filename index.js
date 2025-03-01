@@ -14,7 +14,8 @@ const data = new PogObject("bigtracker", {
     firstTime: true,
     autoKick: false,
     sayReason: false,
-    autoStartSession: true
+    autoStartSession: true,
+    nameHistory: 0
 }, "settings.json");
 
 const runData = new PogObject("bigtracker", {
@@ -254,7 +255,7 @@ class ChatHandler {
             }
 
             runData.save();
-
+            console.log(`ChatHandler.dungeon.floor ${ChatHandler.dungeon.floor}`);
             if (ChatHandler.dungeon.floor == "M7") {
                 ChatHandler.dungeon.endRun(time);
                 if (BigCommand.dungeonSession != null) {
@@ -452,7 +453,7 @@ class BigPlayer {
     }
 
     printPlayer() {
-        Utils.chatMsgClickURL(`&7>> &b${this.playerData["USERNAME"]}`, `https://laby.net/@${this.playerData["UUID"]}`);
+        Utils.chatMsgClickURL(`&7>> &b${this.playerData["USERNAME"]}`, `${BigCommand.nameHistorySite[data.nameHistory]}${this.playerData["UUID"]}`);
         if (this.playerData?.["CLASS"] != undefined) {
             ChatLib.chat(`&9Class &7>> &f${this.playerData["CLASS"]}`);
         }
@@ -942,12 +943,14 @@ class BigCommand {
     static chestTypes = ["WOOD CHEST REWARDS", "GOLD CHEST REWARDS", "DIAMOND CHEST REWARDS", "EMERALD CHEST REWARDS", "OBSIDIAN CHEST REWARDS", "BEDROCK CHEST REWARDS"];
     static essenceTypes = ["Undead Essence", "Wither Essence"];
     static dungeonSession = null;
+    static nameHistorySite = ["https://namemc.com/search?q=", "https://laby.net/@"];
 
     static help = () => {
         ChatLib.chat(`&7-------------&3bigtracker&7-------------`);
         Utils.chatMsgClickCMD(`&7>> &fautokick&7: &${data.autoKick ? "aenabled" : "cdisabled"}`, `/${BigCommand.cmdName} autokick`);
         Utils.chatMsgClickCMD(`&7>> &fsayreason&7: &${data.sayReason ? "aenabled" : "cdisabled"}`, `/${BigCommand.cmdName} sayreason`);
         Utils.chatMsgClickCMD(`&7>> &fauto start session&7: &${data.autoStartSession ? "aenabled" : "cdisabled"}`, `/${BigCommand.cmdName} autostart`);
+        Utils.chatMsgClickCMD(`&7>> &fname history site&7: &${data.nameHistory ? "enamemc" : "blaby"}`, `/${BigCommand.cmdName} namehistory`);
         ChatLib.chat("&7>> &fdodge &bname days? note?");
         ChatLib.chat("&7>> &fnote &bname note");
         Utils.chatMsgClickCMD("&7>> &flist&7: lists all dodged players and players with a note", `/${BigCommand.cmdName} list`);
@@ -1307,6 +1310,10 @@ register("command", (...args) => {
             break;
         case "session":
             BigCommand.session(args);
+            break;
+        case "namehistory":
+            data.nameHistory = (data.nameHistory || 2) - 1;
+            Utils.chatMsgClickCMD(`&7>> &fname history site set to ${data.nameHistory ? "&blaby" : "&enamemc"}`, `/${BigCommand.cmdName} namehistory`);
             break;
         default:
             BigCommand.view(args);

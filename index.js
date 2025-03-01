@@ -937,7 +937,8 @@ class BigCommand {
     static session(args) {
         if (!args?.[1]) {
             ChatLib.chat(`/${BigCommand.cmdName} session`);
-            DungeonSession.CommandList.forEach(cmd => ChatLib.chat(cmd));
+            ChatLib.chat(DungeonSession.CommandList.join(", "));
+            Utils.chatMsgClickCMD(`Current Session: ${BigCommand.dungeonSession != null ? "active" : "inactive"}`, `/${BigCommand.cmdName} session view`);
             return;
         }
 

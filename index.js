@@ -924,7 +924,7 @@ register("packetSent", (packet, event) => {
 
 
 class BigCommand {
-    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "autokick", "sayreason", "viewfile", "autostart"];
+    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "session", "autokick", "sayreason", "viewfile", "autostart"];
     static cmdName = "big";
     static chestTypes = ["WOOD CHEST REWARDS", "GOLD CHEST REWARDS", "DIAMOND CHEST REWARDS", "EMERALD CHEST REWARDS", "OBSIDIAN CHEST REWARDS", "BEDROCK CHEST REWARDS"];
     static essenceTypes = ["Undead Essence", "Wither Essence"];
@@ -1144,11 +1144,15 @@ class BigCommand {
 
 
 class DungeonSession {
-    static SessionCommands = Object.freeze({
-        START: "start",
-        END: "end",
-        VIEW: "view"
-    });
+    static CommandList = ["start", "end", "view"];
+    
+    static tabCompletion(text) {
+        if (text == null || text == "") {
+            return DungeonSession.CommandList;
+        }
+        text = text.toLowerCase();
+        return DungeonSession.CommandList.filter(i => i.startsWith(text));
+    }
 
     static viewFile(filename) {
         if (!FileLib.exists(`./config/ChatTriggers/modules/bigtracker/bigsessions/${filename}`)) {
@@ -1270,6 +1274,9 @@ register("command", (...args) => {
             ChatLib.chat(`auto start session ${data.autoStartSession ? "enabled" : "disabled"}`);
             data.save();
             break;
+        case "session":
+            BigCommand.session(args);
+            break;
         default:
             BigCommand.view(args);
             break;
@@ -1279,6 +1286,10 @@ register("command", (...args) => {
 
         if (!args || args.length == 0 || args?.[0]?.trim() == "") {
             return BigCommand.tabCommands;
+        }
+
+        if (args[0] == "session") {
+            return DungeonSession.tabCompletion(args?.[1]);
         }
         
         let namesThatStartWith = [];

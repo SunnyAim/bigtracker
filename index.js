@@ -1275,12 +1275,12 @@ register("command", (...args) => {
             break;
         case "autokick":
             data.autoKick = !data.autoKick;
-            ChatLib.chat(`&7>> &fautokick ${data.autoKick ? "&aenabled" : "&cdisabled"}`);
+            Utils.chatMsgClickCMD(`&7>> &fautokick ${data.autoKick ? "&aenabled" : "&cdisabled"}`, `/${BigCommand.cmdName} autokick`);
             data.save();
             break;
         case "sayreason":
             data.sayReason = !data.sayReason;
-            ChatLib.chat(`&7>> &fsayreason ${data.sayReason ? "&aenabled" : "&cdisabled"}`);
+            Utils.chatMsgClickCMD(`&7>> &fsayreason ${data.sayReason ? "&aenabled" : "&cdisabled"}`, `/${BigCommand.cmdName} sayreason`);
             data.save();
             break;
         case "viewfile":
@@ -1288,7 +1288,7 @@ register("command", (...args) => {
             break;
         case "autostart":
             data.autoStartSession = !data.autoStartSession;
-            ChatLib.chat(`&7>> &fauto start session ${data.autoStartSession ? "&aenabled" : "&cdisabled"}`);
+            Utils.chatMsgClickCMD(`&7>> &fauto start session ${data.autoStartSession ? "&aenabled" : "&cdisabled"}`, `/${BigCommand.cmdName} autostart`);
             data.save();
             break;
         case "session":

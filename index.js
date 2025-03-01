@@ -452,7 +452,7 @@ class BigPlayer {
     }
 
     printPlayer() {
-        Utils.chatMsgClickURL(`&7>> &b${this.playerData["USERNAME"]}`, `https://namemc.com/search?q=${this.playerData["UUID"]}`);
+        Utils.chatMsgClickURL(`&7>> &b${this.playerData["USERNAME"]}`, `https://laby.net/@${this.playerData["UUID"]}`);
         if (this.playerData?.["CLASS"] != undefined) {
             ChatLib.chat(`&9Class &7>> &f${this.playerData["CLASS"]}`);
         }

@@ -1192,7 +1192,7 @@ class DungeonSession {
         }
 
         let tempData = new PogObject("bigtracker/bigsessions", {}, filename);
-        ChatLib.chat(`&7>> &3Session on &f${new Date(tempData.startedAt).toDateString()}`);
+        ChatLib.chat(`&7>> &3Session on &f${new Date(tempData.startedAt).toString()}`);
         ChatLib.chat(`&7>> &9Runs&f: ${tempData.numRuns}`);
         ChatLib.chat(`&7>> &9Time Spent&f: ${Math.trunc(tempData.totalTime / 60000)} minutes`);
         ChatLib.chat(`&7>> &9Score&f: ${tempData.averageScore}`);

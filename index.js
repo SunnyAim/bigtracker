@@ -178,6 +178,21 @@ class ChatHandler {
                 getPlayerByName(name, BigPlayer.TaskType.PRE4, true);
                 return;
             }
+
+            if (!ChatHandler.dungeon.pre4Done && ChatHandler.dungeon.splits[DungeonRun.SplitType.START]?.[DungeonRun.SplitType.TERMS] && this.partyMembers?.[name] == "Berserk") {
+                ChatHandler.dungeon.pre4Done = true; 
+                getPlayerByName(name, BigPlayer.TaskType.PRE4, false);
+            }
+
+            if (!ChatHandler.dungeon.pre4Done && ChatHandler.dungeon.splits[DungeonRun.SplitType.START]?.[DungeonRun.SplitType.TERMS] && Date.now() - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.TERMS] > 17000) {
+                ChatHandler.dungeon.pre4Done = true;
+                for (let name of Object.keys(ChatHandler.dungeon.partyMembers)) {
+                    if (ChatHandler.dungeon.partyMembers[name] == "Berserk") {
+                        getPlayerByName(name, BigPlayer.TaskType.PRE4, false);
+                        return;
+                    }
+                }
+            }
         }
 
         if (text == "The Core entrance is opening!") {
@@ -424,7 +439,6 @@ class BigPlayer {
             }, 500);
         }
     }
-
 
     note(noteStr="") {
         if (noteStr == "") {
@@ -1412,6 +1426,6 @@ register("gameUnload", () => {
         BigCommand.dungeonSession.saveSession();
         BigCommand.dungeonSession = null;
     }
-})
+});
 
 getFileTabCompleteNames();

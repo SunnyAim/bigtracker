@@ -19,7 +19,7 @@ const data = new PogObject("bigtracker", {
 const runData = new PogObject("bigtracker", {
     chests: {}
 }, "bigloot.json");
-// view file
+
 
 const getFileTabCompleteNames = () => {
     new Thread( () => {
@@ -107,9 +107,15 @@ class ChatHandler {
                 let amt = parseInt(text.match(/.+Essence x(\d+)/)[1]);
                 let type = text.match(/(.+ Essence) x.+/)[1].trim();
                 runData["chests"][ChatHandler.lastGuiName][type] = (runData["chests"][ChatHandler.lastGuiName][type] || 0) + amt;
+                if (BigCommand.dungeonSession != null) {
+                    BigCommand.dungeonSession.loot[type] = (BigCommand.dungeonSession.loot[type] || 0) + amt;
+                }
             } else {
                 text = text.trim();
                 runData["chests"][ChatHandler.lastGuiName][text] = (runData["chests"][ChatHandler.lastGuiName][text] || 0) + 1;
+                if (BigCommand.dungeonSession != null) {
+                    BigCommand.dungeonSession.loot[text] = (BigCommand.dungeonSession.loot[text] || 0) + 1;
+                }
             }
         }
 
@@ -185,6 +191,7 @@ class ChatHandler {
             let nPartyMembers = ChatHandler.dungeon.numPartyMembers;
             let t = ChatHandler.dungeon.floor?.[0];
             let f = ChatHandler.dungeon.floor?.[1];
+            let score = Utils.findScoreboardScore();
 
             if (!t || !f) {
                 console.log(`error on scoreboard floor: ${t} ${f}`);
@@ -204,7 +211,9 @@ class ChatHandler {
                     fastest: time,
                     avg: time,
                     slowest: time,
-                    num: 1
+                    num: 1,
+                    avgScore: score,
+                    avgScoreN: 1
                 }
             } else {
                 let temp = runData[t][f][nPartyMembers];
@@ -214,15 +223,24 @@ class ChatHandler {
                 if (time > temp.slowest) {
                     temp.slowest = time;
                 }
+                if (!temp?.avgScore) {
+                    temp.avgScore = 0;
+                    temp.avgScoreN = 0;
+                }
                 temp.avg = Utils.calcMovingAvg(temp.avg, temp.num, time);
+                temp.avgScore = Utils.calcMovingAvg(temp.avgScore, temp.avgScoreN, score);
+                temp.avgScoreN += 1;
                 temp.num += 1;
                 runData[t][f][nPartyMembers] = temp;
             }
 
             runData.save();
 
-            if (f == 7) {
+            if (ChatHandler.dungeon.floor == "M7") {
                 ChatHandler.dungeon.endRun(time);
+                if (BigCommand.dungeonSession != null) {
+                    BigCommand.dungeonSession.endRun(time, score);
+                }
             }
 
             ChatHandler.dungeon.runDone = true;
@@ -257,7 +275,8 @@ class BigPlayer {
         BR: "BR",
         PRINT: "PRINT",
         NOTE: "NOTE",
-        DODGE: "DODGE"
+        DODGE: "DODGE",
+        VIEWFILE: "VIEWFILE"
     });
 
     constructor(UUID, username="", extra=null) {
@@ -349,8 +368,25 @@ class BigPlayer {
                 this.save();
                 ChatLib.chat(dodgeStr);
                 break;
+            case BigPlayer.TaskType.VIEWFILE:
+                for(let key of Object.keys(this.playerData)) {
+                    this.viewFileHelper(key, this.playerData[key]);
+                }
+                break;
             default:
                 break;
+        }
+    }
+
+    viewFileHelper(key, value) {
+        if (Array.isArray(value)) {
+            ChatLib.chat(`${key}: ${value.join(", ")}`);
+        } else if (typeof value === "object" && value !== null) {
+            for (const subKey in value) {
+                viewFileHelper(`${key}.${subKey}`, value[subKey]);
+            }
+        } else {
+            ChatLib.chat(`${key}: ${value}`);
         }
     }
 
@@ -828,6 +864,19 @@ class Utils {
         }
     }
 
+    static findScoreboardScore() {
+        let board = Scoreboard.getLines();
+        
+        for (let i = 0; i < board.length; i++) {
+            let line = board[i].getName().removeFormatting();
+            let match = line.match(/Cleared: \d+% \((\d+)\)/);
+            if (!match?.[1]) {
+                continue;
+            }
+            return parseInt(match[1]);
+        }
+    }
+
     static secondsToFormatted(seconds) {
         return `${Math.trunc(seconds / 60)}m ${Math.round(seconds % 60)}s`;
     }
@@ -871,13 +920,85 @@ register("packetSent", (packet, event) => {
 
 
 class BigCommand {
-    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "autokick", "sayreason"];
+    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "autokick", "sayreason", "viewfile"];
     static cmdName = "big";
     static chestTypes = ["WOOD CHEST REWARDS", "GOLD CHEST REWARDS", "DIAMOND CHEST REWARDS", "EMERALD CHEST REWARDS", "OBSIDIAN CHEST REWARDS", "BEDROCK CHEST REWARDS"];
     static essenceTypes = ["Undead Essence", "Wither Essence"];
+    static dungeonSession = null;
 
     static help = () => {
         
+    }
+
+    static session(args) {
+        if (!args?.[1]) {
+            ChatLib.chat(`/${BigCommand.cmdName} session`);
+            DungeonSession.SessionCommands.forEach(cmd => ChatLib.chat(cmd));
+        }
+
+        switch(args[1].toLowerCase()) {
+            case "start":
+                if (BigCommand.dungeonSession != null) {
+                    DungeonSession.saveSession();
+                }
+                BigCommand.dungeonSession = new DungeonSession();
+                break;
+            case "end":
+                if (BigCommand.dungeonSession == null) {
+                    ChatLib.chat(`You don't have an active dungeon session to end`);
+                    return;
+                }
+                BigCommand.dungeonSession.saveSession();
+                BigCommand.dungeonSession = null;
+                break;
+            case "view":
+                if (BigCommand.dungeonSession == null || args?.[2] == "old") {
+                    BigCommand.oldSessionSearcher(args?.[3] || 0);
+                    return;
+                }
+
+                BigCommand.dungeonSession.view();
+                break;
+            case "viewfile":
+                if (!args?.[3]) {
+                    ChatLib.chat("no filename included");
+                    return;
+                }
+                DungeonSession.viewFile(args[3]);
+                break;
+        }
+    }
+
+    static oldSessionSearcher(page) {
+        if (page == null) {
+            page = 0;
+        }
+        page = parseInt(page);
+
+        if (!FileLib.exists("./config/ChatTriggers/modules/bigtracker/bigsessions")) {
+            ChatLib.chat("No sessions exist");
+            new File("./config/ChatTriggers/modules/bigtracker/bigsessions").mkdirs();
+            return;
+        }
+
+        let sessionList = new File("./config/ChatTriggers/modules/bigtracker/bigsessions").list();
+        let totalPages = sessionList.length / 10;
+
+        for (let i = page*10; i < 10+(page*10); i++) {
+            try {
+                Utils.chatMsgClickCMD(`${new Date(sessionList[i].replace(".json", "")).toString()}`, `/${BigCommand.cmdName} session viewfile ${sessionList[i]}`);
+            } catch (e) {} // i cba to write proper logic for this and i think this will work so whatever
+        }
+        ChatLib.chat(`Page: ${page}/${totalPages}`);
+    }
+
+    static viewFile(args) {
+        if (!args?.[1]) {
+            ChatLib.chat(`/${BigCommand.cmdName} viewfile name`);
+            return;
+        }
+
+        getPlayerByName(args[1], BigPlayer.TaskType.VIEWFILE);
     }
 
     static printAllPlayers() {
@@ -903,7 +1024,7 @@ class BigCommand {
                         playerStr += " (dodged)";
                     }
                 }
-                Utils.chatMsgClickCMD(playerStr, `/big ${tempPlayer.playerData["USERNAME"]}`);
+                Utils.chatMsgClickCMD(playerStr, `/${BigCommand.cmdName} ${tempPlayer.playerData["USERNAME"]}`);
             }
         }).start();
     }
@@ -986,7 +1107,7 @@ class BigCommand {
 
     static floorStats = (args) => {
         if (!args?.[1]) {
-            ChatLib.chat("ex: /big floorstats m7");
+            ChatLib.chat(`ex: /${BigCommand.cmdName} floorstats m7`);
             return;
         }
 
@@ -998,7 +1119,7 @@ class BigCommand {
         }
 
         if (isNaN(F) || isNaN(numPlayers)) {
-            ChatLib.chat("ex: /big floorstats m7 2");
+            ChatLib.chat(`ex: /${BigCommand.cmdName} floorstats m7 2`);
             return;
         }
 
@@ -1014,6 +1135,87 @@ class BigCommand {
         ChatLib.chat(`§aFastest Run§f: ${Utils.secondsToFormatted(temp.fastest)}`);
         ChatLib.chat(`§dAverage Run§f: ${Utils.secondsToFormatted(temp.avg)}`);
         ChatLib.chat(`§6Slowest Run§f: ${Utils.secondsToFormatted(temp.slowest)}`);
+    }
+}
+
+
+class DungeonSession {
+    static SessionCommands = Object.freeze({
+        START: "start",
+        END: "end",
+        VIEW: "view"
+    });
+
+    static viewFile(filename) {
+        if (!FileLib.exists(`./config/ChatTriggers/modules/bigtracker/bigsessions/${filename}`)) {
+            ChatLib.chat(`Session file not found`);
+            return;
+        }
+
+        let tempData = new PogObject("bigtracker/bigsessions", {}, fileName);
+        ChatLib.chat(`&7>> &3Session on &f${new Date(tempData.startedAt).toDateString()}`);
+        ChatLib.chat(`&7>> &9Runs&f: ${tempData.numRuns}`);
+        ChatLib.chat(`&7>> &9Time Spent&f: ${Math.trunc(tempData.totalTime / 60000)} minutes`);
+        ChatLib.chat(`&7>> &9Score&f: ${tempData.averageScore}`);
+        ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(tempData.averageTime)}`);
+        ChatLib.chat(`&7>> &9Teammates&f: ${tempData.teammates.join(", ")}`);
+        ChatLib.chat(`&7>> &9Scores&f: ${tempData.scores.join(", ")}`);
+        ChatLib.chat(`&7-------------&3Loot&7-------------`);
+        for (let name of Object.keys(tempData.loot)) {
+            ChatLib.chat(`&8${name}&7: &f${tempData.loot[name]}`);
+        }
+    }
+
+    constructor() {
+        this.numRuns = 0;
+        this.loot = {};
+        this.averageScore = 0;
+        this.averageTime = 0;
+        this.runTimes = [];
+        this.scores = [];
+        this.teammates = new Set();
+        this.startedAt = Date.now();
+    }
+
+    view() {
+        ChatLib.chat(`&3Current Session`);
+        ChatLib.chat(`&7>> &9Runs&f: ${this.numRuns}`);
+        ChatLib.chat(`&7>> &9Avg Time&f: ${(Date.now() - this.startedAt) / 60000} minutes`);
+        ChatLib.chat(`&7>> &9Avg Score&f: ${this.averageScore}`);
+    }
+
+    endRun(time, score) {
+        this.averageTime = Utils.calcMovingAvg(this.averageTime, this.numRuns, time);
+        this.averageScore = Utils.calcMovingAvg(this.averageScore, this.numRuns, score);
+        
+        for (let name of Object.keys(ChatHandler.dungeon.partyMembers)) {
+            this.teammates.add(name);
+        }
+
+        this.runTimes.push(time);
+        this.scores.push(score);
+        this.numRuns += 1;
+    }
+
+    saveSession() {
+        if (!FileLib.exists("./config/ChatTriggers/modules/bigtracker/bigsessions")) {
+            new File("./config/ChatTriggers/modules/bigtracker/bigsessions").mkdirs();
+        }
+        let fileName = `${Date.now()}.json`
+
+        new PogObject("bigtracker/bigsessions", {
+            startedAt: this.startedAt,
+            numRuns: this.numRuns,
+            loot: this.loot,
+            averageScore: this.averageScore,
+            averageTime: this.averageTime,
+            runTimes: this.runTimes,
+            scores: this.scores,
+            teammates: Array.from(this.teammates),
+            totalTime: Date.now() - this.startedAt
+        }, fileName);
+
+        Utils.chatMsgClickCMD(`&7>> &fSaved Dungeon Session`, `/${BigCommand.cmdName} session view ${fileName}`);
     }
 }
 
@@ -1055,6 +1257,9 @@ register("command", (...args) => {
             data.sayReason = !data.sayReason;
             ChatLib.chat(`sayreason ${data.sayReason ? "enabled" : "disabled"}`);
             data.save();
+            break;
+        case "viewfile":
+            BigCommand.viewFile(args);
             break;
         default:
             BigCommand.view(args);
@@ -1164,5 +1369,13 @@ if (data.firstTime) {
         }
     }
 }
+
+
+register("gameUnload", () => {
+    if (BigCommand.dungeonSession != null) {
+        BigCommand.dungeonSession.saveSession();
+        BigCommand.dungeonSession = null;
+    }
+})
 
 getFileTabCompleteNames();

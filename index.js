@@ -931,7 +931,17 @@ class BigCommand {
     static dungeonSession = null;
 
     static help = () => {
-        
+        ChatLib.chat(`&7-------------&3bigtracker&7-------------`);
+        Utils.chatMsgClickCMD(`&7>> &fautokick&7: &${data.autoKick ? "aenabled" : "cdisabled"}`, `/${BigCommand.cmdName} autokick`);
+        Utils.chatMsgClickCMD(`&7>> &fsayreason&7: &${data.sayReason ? "aenabled" : "cdisabled"}`, `/${BigCommand.cmdName} sayreason`);
+        Utils.chatMsgClickCMD(`&7>> &fauto start session&7: &${data.autoStartSession ? "aenabled" : "cdisabled"}`, `/${BigCommand.cmdName} autostart`);
+        ChatLib.chat("&7>> &fdodge &bname days? note?");
+        ChatLib.chat("&7>> &fnote &bname note");
+        Utils.chatMsgClickCMD("&7>> &flist&7: lists all dodged players and players with a note", `/${BigCommand.cmdName} list`);
+        ChatLib.chat("&7>> &ffloorstats &bfloor &7(ex: floorstats m7)");
+        ChatLib.chat("&7>> &floot &bfloor &7(ex: loot m7)");
+        Utils.chatMsgClickCMD("&7>> &fsession &7(click for more info)", `/${BigCommand.cmdName} session`);
+        ChatLib.chat("&7>> &fviewfile &busername &7(prints the players entire file in your chat, no reason to ever use this probably)");
     }
 
     static session(args) {
@@ -945,7 +955,7 @@ class BigCommand {
         switch(args[1].toLowerCase()) {
             case "start":
                 if (BigCommand.dungeonSession != null) {
-                    DungeonSession.saveSession();
+                    BigCommand.dungeonSession.saveSession();
                 }
                 BigCommand.dungeonSession = new DungeonSession();
                 break;
@@ -987,15 +997,21 @@ class BigCommand {
             return;
         }
 
-        let sessionList = new File("./config/ChatTriggers/modules/bigtracker/bigsessions").list();
-        let totalPages = (sessionList.length / 10).toFixed(1);
+        const pageLength = 6;
 
-        for (let i = page*10; i < 10+(page*10); i++) {
+        let sessionList = new File("./config/ChatTriggers/modules/bigtracker/bigsessions").list();
+        let totalPages = Math.ceil(sessionList.length / pageLength);
+
+        ChatLib.chat(`&7-------------&3Page ${page+1}&7-------------`);
+        for (let i = page*pageLength; i < pageLength+(page*pageLength); i++) {
             try {
                 Utils.chatMsgClickCMD(`${new Date(parseInt(sessionList[i].replace(".json", ""))).toString()}`, `/${BigCommand.cmdName} session viewfile ${sessionList[i]}`);
             } catch (e) {} // i cba to write proper logic for this and i think this will work so whatever
         }
-        ChatLib.chat(`Page: ${page}/${totalPages}`);
+        ChatLib.chat(`&7Page: ${page+1}/${totalPages}`);
+        if (page+1 < totalPages) {
+            Utils.chatMsgClickCMD("&7>>> &cNext Page &7>>>", `/${BigCommand.cmdName} session view old ${page+1}`);
+        }
     }
 
     static viewFile(args) {

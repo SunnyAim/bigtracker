@@ -950,7 +950,7 @@ class BigCommand {
         Utils.chatMsgClickCMD(`&7>> &fautokick&7: &${data.autoKick ? "aenabled" : "cdisabled"}`, `/${BigCommand.cmdName} autokick`);
         Utils.chatMsgClickCMD(`&7>> &fsayreason&7: &${data.sayReason ? "aenabled" : "cdisabled"}`, `/${BigCommand.cmdName} sayreason`);
         Utils.chatMsgClickCMD(`&7>> &fauto start session&7: &${data.autoStartSession ? "aenabled" : "cdisabled"}`, `/${BigCommand.cmdName} autostart`);
-        Utils.chatMsgClickCMD(`&7>> &fname history site&7: &${data.nameHistory ? "enamemc" : "blaby"}`, `/${BigCommand.cmdName} namehistory`);
+        Utils.chatMsgClickCMD(`&7>> &fname history site&7: &${data.nameHistory ? "blaby" : "enamemc"}`, `/${BigCommand.cmdName} namehistory`);
         ChatLib.chat("&7>> &fdodge &bname days? note?");
         ChatLib.chat("&7>> &fnote &bname note");
         Utils.chatMsgClickCMD("&7>> &flist&7: lists all dodged players and players with a note", `/${BigCommand.cmdName} list`);

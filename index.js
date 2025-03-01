@@ -937,7 +937,8 @@ class BigCommand {
     static session(args) {
         if (!args?.[1]) {
             ChatLib.chat(`/${BigCommand.cmdName} session`);
-            DungeonSession.SessionCommands.forEach(cmd => ChatLib.chat(cmd));
+            DungeonSession.CommandList.forEach(cmd => ChatLib.chat(cmd));
+            return;
         }
 
         switch(args[1].toLowerCase()) {
@@ -964,11 +965,11 @@ class BigCommand {
                 BigCommand.dungeonSession.view();
                 break;
             case "viewfile":
-                if (!args?.[3]) {
+                if (!args?.[2]) {
                     ChatLib.chat("no filename included");
                     return;
                 }
-                DungeonSession.viewFile(args[3]);
+                DungeonSession.viewFile(args[2]);
                 break;
         }
     }
@@ -986,11 +987,11 @@ class BigCommand {
         }
 
         let sessionList = new File("./config/ChatTriggers/modules/bigtracker/bigsessions").list();
-        let totalPages = sessionList.length / 10;
+        let totalPages = (sessionList.length / 10).toFixed(1);
 
         for (let i = page*10; i < 10+(page*10); i++) {
             try {
-                Utils.chatMsgClickCMD(`${new Date(sessionList[i].replace(".json", "")).toString()}`, `/${BigCommand.cmdName} session viewfile ${sessionList[i]}`);
+                Utils.chatMsgClickCMD(`${new Date(parseInt(sessionList[i].replace(".json", ""))).toString()}`, `/${BigCommand.cmdName} session viewfile ${sessionList[i]}`);
             } catch (e) {} // i cba to write proper logic for this and i think this will work so whatever
         }
         ChatLib.chat(`Page: ${page}/${totalPages}`);
@@ -1160,7 +1161,7 @@ class DungeonSession {
             return;
         }
 
-        let tempData = new PogObject("bigtracker/bigsessions", {}, fileName);
+        let tempData = new PogObject("bigtracker/bigsessions", {}, filename);
         ChatLib.chat(`&7>> &3Session on &f${new Date(tempData.startedAt).toDateString()}`);
         ChatLib.chat(`&7>> &9Runs&f: ${tempData.numRuns}`);
         ChatLib.chat(`&7>> &9Time Spent&f: ${Math.trunc(tempData.totalTime / 60000)} minutes`);

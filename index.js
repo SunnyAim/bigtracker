@@ -919,7 +919,6 @@ register("packetSent", (packet, event) => {
         }
         ChatHandler.lastGuiName = `${cataType} ${cataFloor}`;
     }
-
 }).setFilteredClass(C0EPacketClickWindow);
 
 
@@ -1276,12 +1275,12 @@ register("command", (...args) => {
             break;
         case "autokick":
             data.autoKick = !data.autoKick;
-            ChatLib.chat(`autokick ${data.autoKick ? "enabled" : "disabled"}`);
+            ChatLib.chat(`&7>> &fautokick ${data.autoKick ? "&aenabled" : "&cdisabled"}`);
             data.save();
             break;
         case "sayreason":
             data.sayReason = !data.sayReason;
-            ChatLib.chat(`sayreason ${data.sayReason ? "enabled" : "disabled"}`);
+            ChatLib.chat(`&7>> &fsayreason ${data.sayReason ? "&aenabled" : "&cdisabled"}`);
             data.save();
             break;
         case "viewfile":
@@ -1289,7 +1288,7 @@ register("command", (...args) => {
             break;
         case "autostart":
             data.autoStartSession = !data.autoStartSession;
-            ChatLib.chat(`auto start session ${data.autoStartSession ? "enabled" : "disabled"}`);
+            ChatLib.chat(`&7>> &fauto start session ${data.autoStartSession ? "&aenabled" : "&cdisabled"}`);
             data.save();
             break;
         case "session":

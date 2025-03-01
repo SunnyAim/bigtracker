@@ -13,7 +13,8 @@ const tabCompleteNames = new Set();
 const data = new PogObject("bigtracker", {
     firstTime: true,
     autoKick: false,
-    sayReason: false
+    sayReason: false,
+    autoStartSession: true
 }, "settings.json");
 
 const runData = new PogObject("bigtracker", {
@@ -128,6 +129,9 @@ class ChatHandler {
 
         if (text == "[NPC] Mort: Here, I found this map when I first entered the dungeon.") {
             ChatHandler.dungeon = new DungeonRun();
+            if (data.autoStartSession && BigCommand.dungeonSession == null) {
+                BigCommand.dungeonSession = new DungeonSession();
+            }
             return;
         }
  
@@ -920,7 +924,7 @@ register("packetSent", (packet, event) => {
 
 
 class BigCommand {
-    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "autokick", "sayreason", "viewfile"];
+    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "autokick", "sayreason", "viewfile", "autostart"];
     static cmdName = "big";
     static chestTypes = ["WOOD CHEST REWARDS", "GOLD CHEST REWARDS", "DIAMOND CHEST REWARDS", "EMERALD CHEST REWARDS", "OBSIDIAN CHEST REWARDS", "BEDROCK CHEST REWARDS"];
     static essenceTypes = ["Undead Essence", "Wither Essence"];
@@ -1213,7 +1217,7 @@ class DungeonSession {
             scores: this.scores,
             teammates: Array.from(this.teammates),
             totalTime: Date.now() - this.startedAt
-        }, fileName);
+        }, fileName).save();
 
         Utils.chatMsgClickCMD(`&7>> &fSaved Dungeon Session`, `/${BigCommand.cmdName} session view ${fileName}`);
     }
@@ -1261,6 +1265,11 @@ register("command", (...args) => {
         case "viewfile":
             BigCommand.viewFile(args);
             break;
+        case "autostart":
+            data.autoStartSession = !data.autoStartSession;
+            ChatLib.chat(`auto start session ${data.autoStartSession ? "enabled" : "disabled"}`);
+            data.save();
+            break;
         default:
             BigCommand.view(args);
             break;
@@ -1302,7 +1311,6 @@ if (data.firstTime) {
     runData.save();
 
     if (FileLib.exists("./config/ChatTriggers/modules/bigtracker/players")) {
-        // go through each player and convert to new system.
         let files = new File("./config/ChatTriggers/modules/bigtracker/players").list();
         for (let i = 0; i < files.length; i++) {
             try {

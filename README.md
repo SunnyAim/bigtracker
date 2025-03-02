@@ -6,7 +6,7 @@ tutorial:
 https://github.com/user-attachments/assets/06724d18-29bc-4088-bb7a-b707920ce0b7
 
 
-examples (old):
+
 ![image](https://github.com/user-attachments/assets/bc96198a-5e6b-4145-811d-ad62a8b67bed)
 
 ![image](https://github.com/user-attachments/assets/67043f97-833e-43f8-9561-52f1f1cc92d7)

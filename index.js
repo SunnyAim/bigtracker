@@ -1281,7 +1281,11 @@ class DungeonSession {
         if (!FileLib.exists("./config/ChatTriggers/modules/bigtracker/bigsessions")) {
             new File("./config/ChatTriggers/modules/bigtracker/bigsessions").mkdirs();
         }
-        
+
+        if (this.numRuns == 0) {
+            return;
+        }
+
         let fileName = `${Date.now()}.json`;
 
         new PogObject("bigtracker/bigsessions", {

@@ -1192,6 +1192,7 @@ class BigCommand {
 
         ChatLib.chat(`§7Stats for §${T == "F" ? "a" : "c"}${T}${F} §7with §f${numPlayers} §7players`);
         ChatLib.chat(`§7Runs§f: ${temp.num}`);
+        ChatLib.chat(`§7Avg Score§f: ${temp.avgScore.toFixed(1)}`);
         ChatLib.chat(`§aFastest Run§f: ${Utils.secondsToFormatted(temp.fastest)}`);
         ChatLib.chat(`§dAverage Run§f: ${Utils.secondsToFormatted(temp.avg)}`);
         ChatLib.chat(`§6Slowest Run§f: ${Utils.secondsToFormatted(temp.slowest)}`);

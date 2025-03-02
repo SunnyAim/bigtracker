@@ -610,8 +610,6 @@ class BigPlayer {
     }
     
     updateTime(updateType, compMS, compTicks) {
-        // update type MS, update type Ticks? have ms and tick pb? no moving avg anymore. track by array instead, last 30 runs.
-
         if (!this.playerData?.[updateType]) {
             this.playerData[updateType] = [[compMS, compTicks]];
             this.playerData[updateType + "pb"] = [compMS, compTicks];
@@ -770,10 +768,14 @@ class DungeonRun {
     }
 
     getPartyMembers = () => {
-        if (this.gotAllMembers && !this.soloRun) return;
+        if (this.gotAllMembers && !this.soloRun) {
+            return;
+        }
     
         const Scoreboard = TabList?.getNames();
-        if (!Scoreboard || Scoreboard?.length === 0) return;
+        if (!Scoreboard || Scoreboard?.length === 0) {
+            return;
+        }
     
         this.numPartyMembers = parseInt(Scoreboard[0]?.charAt(28));
         let deadPlayer = false;
@@ -844,7 +846,6 @@ class Utils {
         new TextComponent(msgTxt).setHover("show_text", hoverTxt).chat();
     }
 
-
     static calcMovingAvg(t, n, time) {
         return t * n / (n + 1) + (time / (n + 1));
     }
@@ -867,17 +868,6 @@ class Utils {
         guiNameStr += "Floor ";
         return guiNameStr + Utils.toRoman[f - 1];
     }
-
-    // static msgToFloor = {
-    //     "Maxor, Storm, Goldor, and Necron": 7,
-    //     "Sadan": 6,
-    //     "Livid": 5,
-    //     "Thorn": 4,
-    //     "The Professor": 3,
-    //     "Scarf": 2,
-    //     "Bonzo": 1,
-    //     "The Watcher": 0
-    // }
 
     static findScoreboardFloor() {
         let board = Scoreboard.getLines();
@@ -936,7 +926,11 @@ register("packetReceived", (packet, event) => {
 
 register("packetSent", (packet, event) => {
     let item = packet?.func_149546_g();
-    if (!item) return;
+
+    if (!item) {
+        return;
+    }
+
     item = new Item(item);
     if (item.getName()?.includes("The Catacombs")) {
         let cataType = item.getName()?.removeFormatting();
@@ -1094,15 +1088,20 @@ class BigCommand {
             ChatLib.chat("No floor entered, defaulting to M7");
             floor = "M7";
         }
+
         floor = floor.toUpperCase();
         let floorStr = "";
+
         if (floor.charAt(0) == "M") {
             floorStr += "Master Mode ";
         }
+
         floorStr += "The Catacombs Floor ";
         floorStr += Utils.toRoman[parseInt(floor.charAt(1)) - 1];
+
         let floorLoot = runData["chests"]?.[floorStr];
         ChatLib.chat(`&fLoot for &c${floorStr}`);
+
         if (!floorLoot) {
             ChatLib.chat("&cInvalid Floor");
             return;
@@ -1110,22 +1109,34 @@ class BigCommand {
 
         ChatLib.chat(`&fTotal Chests: ${floorLoot["Total"]}`);
         for (let type of BigCommand.chestTypes) {
-            if (!floorLoot?.[type]) continue;
+            if (!floorLoot?.[type]) {
+                continue;
+            }
+
             ChatLib.chat(`&8${type}&7: ${floorLoot[type]}`);
         }
 
         for (let type of Object.keys(floorLoot)) {
-            if (!type.includes("Enchanted Book")) continue;
+            if (!type.includes("Enchanted Book")) {
+                continue;
+            }
+
             ChatLib.chat(`&c${type}&7: ${floorLoot[type]}`);
         }
 
         for (let type of BigCommand.essenceTypes) {
-            if (!floorLoot?.[type]) continue;
+            if (!floorLoot?.[type]) {
+                continue;
+            }
+
             ChatLib.chat(`&e${type}&7: ${floorLoot[type]}`);
         }
         
         for (let type of Object.keys(floorLoot)) {
-            if (BigCommand.essenceTypes.includes(type) || BigCommand.chestTypes.includes(type) || type == "Total" || type.includes("Enchanted Book")) continue;
+            if (BigCommand.essenceTypes.includes(type) || BigCommand.chestTypes.includes(type) || type == "Total" || type.includes("Enchanted Book")) {
+                continue;
+            }
+
             ChatLib.chat(`&d${type}&7: ${floorLoot[type]}`);
         }
     }
@@ -1174,6 +1185,7 @@ class BigCommand {
         let T = args[1].charAt(0).toUpperCase();
         let F = parseInt(args[1].charAt(1));
         let numPlayers = 5;
+
         if (args?.[2]) {
             numPlayers = parseInt(args[2]);
         }
@@ -1226,6 +1238,7 @@ class DungeonSession {
         Utils.chatMsgClickCMD(`&7>> &9Teammates&f: ${tempData.teammates.join(", ")}`, `/${BigCommand.cmdName} session viewteammates ${tempData.teammates.join(",")}`);
         ChatLib.chat(`&7>> &9Scores&f: ${tempData.scores.join(", ")}`);
         ChatLib.chat(`&7-------------&3Loot&7-------------`);
+
         for (let name of Object.keys(tempData.loot)) {
             ChatLib.chat(`&8${name}&7: &f${tempData.loot[name]}`);
         }
@@ -1268,6 +1281,7 @@ class DungeonSession {
         if (!FileLib.exists("./config/ChatTriggers/modules/bigtracker/bigsessions")) {
             new File("./config/ChatTriggers/modules/bigtracker/bigsessions").mkdirs();
         }
+        
         let fileName = `${Date.now()}.json`;
 
         new PogObject("bigtracker/bigsessions", {

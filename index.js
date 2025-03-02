@@ -729,7 +729,10 @@ class DungeonRun {
                             if (this.partyMembers[name] != "Mage" && this.partyMembers[name] != "Archer") {
                                 continue;
                             }
-                            getPlayerByName(name, BigPlayer.TaskType.UPDATE, [BigPlayer.TaskType.BR, this.splits[or][type][0], this.splits[or][type][1]]);
+                            let brDoneAt = this.splits[or][type];
+                            let runStartedAt = this.splits[DungeonRun.SplitType.START, DungeonRun.SplitType.RUN];
+                            let brTime = [brDoneAt[0] - runStartedAt[0], brDoneAt[1] - runStartedAt[1]];
+                            getPlayerByName(name, BigPlayer.TaskType.UPDATE, [BigPlayer.TaskType.BR, brTime[0], brTime[1]]);
                         }
                         break;
                 }

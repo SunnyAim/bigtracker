@@ -3,7 +3,10 @@ tracks stats of people you play with in party finder. lets you dodge them if you
 
 tutorial:
 
-https://github.com/user-attachments/assets/06724d18-29bc-4088-bb7a-b707920ce0b7
+
+https://github.com/user-attachments/assets/990a0648-f034-4715-adc1-becca3be0699
+
+
 
 
 

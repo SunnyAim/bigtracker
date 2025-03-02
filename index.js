@@ -963,8 +963,8 @@ class BigCommand {
         ChatLib.chat("&7>> &fdodge &bname days? note?");
         ChatLib.chat("&7>> &fnote &bname note");
         Utils.chatMsgClickCMD("&7>> &flist&7: lists all dodged players and players with a note", `/${BigCommand.cmdName} list`);
-        ChatLib.chat("&7>> &ffloorstats &bfloor &7(ex: floorstats m7)");
-        ChatLib.chat("&7>> &floot &bfloor &7(ex: loot m7)");
+        Utils.chatMsgClickCMD("&7>> &ffloorstats &bfloor &7(ex: floorstats m7)", `/${BigCommand.cmdName} floorstats m7`);
+        Utils.chatMsgClickCMD("&7>> &floot &bfloor &7(ex: loot m7)", `/${BigCommand.cmdName} loot m7`);
         Utils.chatMsgClickCMD("&7>> &fsession &7(click for more info)", `/${BigCommand.cmdName} session`);
         ChatLib.chat("&7>> &fviewfile &busername &7(prints the players entire file in your chat, no reason to ever use this probably)");
     }
@@ -1263,7 +1263,7 @@ class DungeonSession {
         if (!FileLib.exists("./config/ChatTriggers/modules/bigtracker/bigsessions")) {
             new File("./config/ChatTriggers/modules/bigtracker/bigsessions").mkdirs();
         }
-        let fileName = `${Date.now()}.json`
+        let fileName = `${Date.now()}.json`;
 
         new PogObject("bigtracker/bigsessions", {
             startedAt: this.startedAt,

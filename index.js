@@ -1254,6 +1254,7 @@ class DungeonSession {
             this.teammates.add(name);
         }
 
+        this.lastRunTimestamp = Date.now();
         this.runTimes.push(time);
         this.scores.push(score);
         this.numRuns += 1;

@@ -255,8 +255,8 @@ class ChatHandler {
             }
 
             runData.save();
-            console.log(`ChatHandler.dungeon.floor ${ChatHandler.dungeon.floor}`);
-            if (ChatHandler.dungeon.floor == "M7") {
+            
+            if (f == 7) {
                 ChatHandler.dungeon.endRun(time);
                 if (BigCommand.dungeonSession != null) {
                     BigCommand.dungeonSession.endRun(time, score);
@@ -888,7 +888,7 @@ class Utils {
         
         for (let i = 0; i < board.length; i++) {
             let line = board[i].getName().removeFormatting();
-            let match = line.match(/Cleared: \d+% \((\d+)\)/);
+            let match = line.match(/Cleared: \d+%.*\((\d+)\)/);
             if (!match?.[1]) {
                 continue;
             }
@@ -1275,7 +1275,7 @@ register("command", (...args) => {
             BigCommand.floorStats(args);
             break;
         case "scoreboard":
-            console.log(ChatHandler.dungeon.floor);
+            console.log(Utils.findScoreboardScore());
             break;
         case "dodge":
             BigCommand.dodge(args);

@@ -122,7 +122,6 @@ class ChatHandler {
             }
         }
 
-
         if (text.match(/Party Finder > (.+) joined the dungeon group! .+/)) {
             const match = text.match(/Party Finder > (.+) joined the dungeon group! .+/);
             getPlayerByName(match[1], BigPlayer.TaskType.CHECK);
@@ -259,9 +258,10 @@ class ChatHandler {
 
             if (f == 7) {
                 ChatHandler.dungeon.endRun(time);
-                if (BigCommand.dungeonSession != null) {
-                    BigCommand.dungeonSession.endRun(time, score);
-                }
+            }
+            
+            if (BigCommand.dungeonSession != null) {
+                BigCommand.dungeonSession.endRun(time, score, ChatHandler.dungeon.floor);
             }
 
             ChatHandler.dungeon.runDone = true;
@@ -817,6 +817,55 @@ class DungeonRun {
 
 
 class Utils {
+    static printFloorLoot(floorLoot, printTotal=true) {
+        let totalCoins = 0;
+
+        for (let type of Object.keys(floorLoot)) {
+            if (!type.includes("Enchanted Book")) {
+                continue;
+            }
+
+            let price = Math.trunc(Prices.getPrice(type));
+            totalCoins += price;
+            if (price == 0) {
+                ChatLib.chat(`&a${type}&7: ${floorLoot[type]}`);
+            } else {
+                ChatLib.chat(`&a${type}&7: ${floorLoot[type]} &a(&6${Utils.formatNumber(price)}&a) = &6${Utils.formatNumber(price * floorLoot[type])}`);
+            }
+        }
+
+        for (let type of BigCommand.essenceTypes) {
+            if (!floorLoot?.[type]) {
+                continue;
+            }
+
+            let price = Math.trunc(Prices.getPrice(type));
+            totalCoins += price;
+            ChatLib.chat(`&e${type}&7: ${floorLoot[type]} &a(&6${Utils.formatNumber(price)}&a) = &6${Utils.formatNumber(price * floorLoot[type])}`);
+        }
+
+        for (let type of Object.keys(floorLoot)) {
+            if (BigCommand.essenceTypes.includes(type) || BigCommand.chestTypes.includes(type) || type == "Total" || type.includes("Enchanted Book")) {
+                continue;
+            }
+            // &a green &6 gold
+            // let colorName = Prices.priceData.itemAPI?.[type] || type;
+            let price = Math.trunc(Prices.getPrice(type));
+            totalCoins += price;
+            ChatLib.chat(`&b${type}&7: ${floorLoot[type]} &a(&6${Utils.formatNumber(price)}&a) = &6${Utils.formatNumber(price * floorLoot[type])}`);
+        }
+
+        if (printTotal) {
+            ChatLib.chat(`&cTotal Chests: &7${Utils.formatNumber(floorLoot["Total"])}`);
+        }
+
+        ChatLib.chat(`&cTotal Coins: &6${Utils.formatNumber(totalCoins)}`);
+
+        if (printTotal) {
+            ChatLib.chat(`&cProfit/Chest: &6${Utils.formatNumber(Math.trunc(totalCoins / floorLoot["Total"]))}`);
+        }
+    }
+
     static tierToColor = {
         "COMMON": "&f",
         "UNCOMMON": "&a",
@@ -830,7 +879,7 @@ class Utils {
     }
 
     static formatNumber (num) {
-        return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
+        return num?.toString()?.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
     }
 
     static formatMSandTick(times) {
@@ -1117,53 +1166,14 @@ class BigCommand {
         floorStr += Utils.toRoman[parseInt(floor.charAt(1)) - 1];
 
         let floorLoot = runData["chests"]?.[floorStr];
-        ChatLib.chat(`&fLoot for &c${floorStr}`);
+        Utils.chatMsgClickCMD(`&fLoot for &c${floorStr}`, `/${BigCommand.cmdName} floorstats ${floor}`);
 
         if (!floorLoot) {
             ChatLib.chat("&cInvalid Floor or no loot tracked for that floor");
             return;
         }
 
-        let totalCoins = 0;
-
-        for (let type of Object.keys(floorLoot)) {
-            if (!type.includes("Enchanted Book")) {
-                continue;
-            }
-
-            let price = Math.trunc(Prices.getPrice(type));
-            totalCoins += price;
-            if (price == 0) {
-                ChatLib.chat(`&a${type}&7: ${floorLoot[type]}`);
-            } else {
-                ChatLib.chat(`&a${type}&7: ${floorLoot[type]} &a(&6${Utils.formatNumber(price)}&a) = &6${Utils.formatNumber(price * floorLoot[type])}`);
-            }
-        }
-
-        for (let type of BigCommand.essenceTypes) {
-            if (!floorLoot?.[type]) {
-                continue;
-            }
-
-            let price = Math.trunc(Prices.getPrice(type));
-            totalCoins += price;
-            ChatLib.chat(`&e${type}&7: ${floorLoot[type]} &a(&6${Utils.formatNumber(price)}&a) = &6${Utils.formatNumber(price * floorLoot[type])}`);
-        }
-        
-        for (let type of Object.keys(floorLoot)) {
-            if (BigCommand.essenceTypes.includes(type) || BigCommand.chestTypes.includes(type) || type == "Total" || type.includes("Enchanted Book")) {
-                continue;
-            }
-            // &a green &6 gold
-            // let colorName = Prices.priceData.itemAPI?.[type] || type;
-            let price = Math.trunc(Prices.getPrice(type));
-            totalCoins += price;
-            ChatLib.chat(`&b${type}&7: ${floorLoot[type]} &a(&6${Utils.formatNumber(price)}&a) = &6${Utils.formatNumber(price * floorLoot[type])}`);
-        }
-
-        ChatLib.chat(`&cTotal Chests: &7${Utils.formatNumber(floorLoot["Total"])}`);
-        ChatLib.chat(`&cTotal Coins: &6${Utils.formatNumber(totalCoins)}`);
-        ChatLib.chat(`&cProfit/Chest: &6${Utils.formatNumber(Math.trunc(totalCoins / floorLoot["Total"]))}`)
+        Utils.printFloorLoot(floorLoot);
     }
 
     static dodge = (args) => {
@@ -1246,18 +1256,18 @@ class Prices {
     static itemApiURL = "https://api.hypixel.net/v2/resources/skyblock/items";
 
     static getPrice(itemName) {
-        let realName = Prices.priceData.itemAPI?.[itemName] || itemName;
+        let realName = Prices.priceData?.itemAPI?.[itemName] || itemName;
         if (realName == null) {
             return 0;
         }
 
-        if (Prices.priceData.bzPrices.products?.[realName]) {
-            return Prices.priceData.bzPrices.products[realName].quick_status.sellPrice;
-        } else if (Prices.priceData.ahPrices?.[realName]) {
-            return Prices.priceData.ahPrices[realName];
+        if (Prices.priceData?.bzPrices?.products?.[realName]) {
+            return Prices.priceData?.bzPrices.products[realName].quick_status.sellPrice;
+        } else if (Prices.priceData?.ahPrices?.[realName]) {
+            return Prices.priceData?.ahPrices[realName];
         }
 
-        switch(itemName) {
+        switch (itemName) {
             case "Wither Essence":
                 return Prices.getPrice("ESSENCE_WITHER");
             case "Undead Essence":
@@ -1362,16 +1372,16 @@ class DungeonSession {
         let tempData = new PogObject("bigtracker/bigsessions", {}, filename);
         ChatLib.chat(`&7>> &3Session on &f${new Date(tempData.startedAt).toString()}`);
         ChatLib.chat(`&7>> &9Runs&f: ${tempData.numRuns}`);
+        if (tempData?.floor) {
+            ChatLib.chat(`&7>> &9Floor&f: ${tempData.floor}`);
+        }
         ChatLib.chat(`&7>> &9Time Spent&f: ${Math.trunc(tempData.totalTime / 60000)} minutes`);
         ChatLib.chat(`&7>> &9Score&f: ${tempData.averageScore}`);
         ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(tempData.averageTime)}`);
         Utils.chatMsgClickCMD(`&7>> &9Teammates&f: ${tempData.teammates.join(", ")}`, `/${BigCommand.cmdName} session viewteammates ${tempData.teammates.join(",")}`);
         ChatLib.chat(`&7>> &9Scores&f: ${tempData.scores.join(", ")}`);
         ChatLib.chat(`&7-------------&3Loot&7-------------`);
-
-        for (let name of Object.keys(tempData.loot)) {
-            ChatLib.chat(`&8${name}&7: &f${tempData.loot[name]} ($${getPrice(name) * tempData.loot[name]})`);
-        }
+        Utils.printFloorLoot(tempData.loot, false);
     }
 
     constructor() {
@@ -1384,16 +1394,24 @@ class DungeonSession {
         this.teammates = new Set();
         this.startedAt = Date.now();
         this.lastRunTimestamp = Date.now();
+        this.floor = null;
     }
 
     view() {
         ChatLib.chat(`&3Current Session`);
+        
+        if (this.floor != null) {
+            ChatLib.chat(`&7>> &0Floor&f: ${this.floor}`);
+        }
+
         ChatLib.chat(`&7>> &9Runs&f: ${this.numRuns}`);
         ChatLib.chat(`&7>> &9Avg Time&f: ${(Date.now() - this.startedAt) / 60000} minutes`);
         ChatLib.chat(`&7>> &9Avg Score&f: ${this.averageScore}`);
+        ChatLib.chat(`&7-------------&3Loot&7-------------`);
+        Utils.printFloorLoot(this.loot, false);
     }
 
-    endRun(time, score) {
+    endRun(time, score, floor) {
         this.averageTime = Utils.calcMovingAvg(this.averageTime, this.numRuns, time);
         this.averageScore = Utils.calcMovingAvg(this.averageScore, this.numRuns, score);
         
@@ -1401,6 +1419,7 @@ class DungeonSession {
             this.teammates.add(name);
         }
 
+        this.floor = floor;
         this.lastRunTimestamp = Date.now();
         this.runTimes.push(time);
         this.scores.push(score);
@@ -1427,7 +1446,8 @@ class DungeonSession {
             runTimes: this.runTimes,
             scores: this.scores,
             teammates: Array.from(this.teammates),
-            totalTime: Date.now() - this.startedAt
+            totalTime: Date.now() - this.startedAt,
+            floor: this.floor
         }, fileName).save();
 
         Utils.chatMsgClickCMD(`&7>> &fSaved Dungeon Session`, `/${BigCommand.cmdName} session view ${fileName}`);

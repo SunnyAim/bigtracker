@@ -67,6 +67,7 @@ register("worldLoad", () => {
     ChatHandler.dungeon = null;
     ChatHandler.getLoot = false;
     ChatHandler.lastGuiName = "";
+    Prices.checkPrices();
 });
 
 
@@ -113,7 +114,7 @@ class ChatHandler {
                     BigCommand.dungeonSession.loot[type] = (BigCommand.dungeonSession.loot[type] || 0) + amt;
                 }
             } else {
-                text = text.trim();
+                text = text.trim().replace("RARE REWARD! ", "");
                 runData["chests"][ChatHandler.lastGuiName][text] = (runData["chests"][ChatHandler.lastGuiName][text] || 0) + 1;
                 if (BigCommand.dungeonSession != null) {
                     BigCommand.dungeonSession.loot[text] = (BigCommand.dungeonSession.loot[text] || 0) + 1;
@@ -816,6 +817,22 @@ class DungeonRun {
 
 
 class Utils {
+    static tierToColor = {
+        "COMMON": "&f",
+        "UNCOMMON": "&a",
+        "RARE": "&9",
+        "EPIC": "&5",
+        "LEGENDARY": "&6"
+    }
+
+    static getNameColor(itemName) {
+        return Utils.tierToColor?.[Prices.priceData.nameToColor?.itemName] || "&f";
+    }
+
+    static formatNumber (num) {
+        return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
+    }
+
     static formatMSandTick(times) {
         let seconds = times[0] / 1000;
         let ticks = times[1] / 20;
@@ -1103,25 +1120,24 @@ class BigCommand {
         ChatLib.chat(`&fLoot for &c${floorStr}`);
 
         if (!floorLoot) {
-            ChatLib.chat("&cInvalid Floor");
+            ChatLib.chat("&cInvalid Floor or no loot tracked for that floor");
             return;
         }
 
-        ChatLib.chat(`&fTotal Chests: ${floorLoot["Total"]}`);
-        for (let type of BigCommand.chestTypes) {
-            if (!floorLoot?.[type]) {
-                continue;
-            }
-
-            ChatLib.chat(`&8${type}&7: ${floorLoot[type]}`);
-        }
+        let totalCoins = 0;
 
         for (let type of Object.keys(floorLoot)) {
             if (!type.includes("Enchanted Book")) {
                 continue;
             }
 
-            ChatLib.chat(`&c${type}&7: ${floorLoot[type]}`);
+            let price = Math.trunc(Prices.getPrice(type));
+            totalCoins += price;
+            if (price == 0) {
+                ChatLib.chat(`&a${type}&7: ${floorLoot[type]}`);
+            } else {
+                ChatLib.chat(`&a${type}&7: ${floorLoot[type]} &a(&6${Utils.formatNumber(price)}&a) = &6${Utils.formatNumber(price * floorLoot[type])}`);
+            }
         }
 
         for (let type of BigCommand.essenceTypes) {
@@ -1129,16 +1145,25 @@ class BigCommand {
                 continue;
             }
 
-            ChatLib.chat(`&e${type}&7: ${floorLoot[type]}`);
+            let price = Math.trunc(Prices.getPrice(type));
+            totalCoins += price;
+            ChatLib.chat(`&e${type}&7: ${floorLoot[type]} &a(&6${Utils.formatNumber(price)}&a) = &6${Utils.formatNumber(price * floorLoot[type])}`);
         }
         
         for (let type of Object.keys(floorLoot)) {
             if (BigCommand.essenceTypes.includes(type) || BigCommand.chestTypes.includes(type) || type == "Total" || type.includes("Enchanted Book")) {
                 continue;
             }
-
-            ChatLib.chat(`&d${type}&7: ${floorLoot[type]}`);
+            // &a green &6 gold
+            // let colorName = Prices.priceData.itemAPI?.[type] || type;
+            let price = Math.trunc(Prices.getPrice(type));
+            totalCoins += price;
+            ChatLib.chat(`&b${type}&7: ${floorLoot[type]} &a(&6${Utils.formatNumber(price)}&a) = &6${Utils.formatNumber(price * floorLoot[type])}`);
         }
+
+        ChatLib.chat(`&cTotal Chests: &7${Utils.formatNumber(floorLoot["Total"])}`);
+        ChatLib.chat(`&cTotal Coins: &6${Utils.formatNumber(totalCoins)}`);
+        ChatLib.chat(`&cProfit/Chest: &6${Utils.formatNumber(Math.trunc(totalCoins / floorLoot["Total"]))}`)
     }
 
     static dodge = (args) => {
@@ -1178,8 +1203,7 @@ class BigCommand {
 
     static floorStats = (args) => {
         if (!args?.[1]) {
-            ChatLib.chat(`ex: /${BigCommand.cmdName} floorstats m7`);
-            return;
+            args.push("m7");
         }
 
         let T = args[1].charAt(0).toUpperCase();
@@ -1212,6 +1236,112 @@ class BigCommand {
 }
 
 
+class Prices {
+    static priceData = new PogObject("bigtracker", {
+        ahLastUpdated: 0
+    }, "prices.json");
+
+    static bzURL = "https://api.hypixel.net/skyblock/bazaar";
+    static ahURL = "https://moulberry.codes/lowestbin.json";
+    static itemApiURL = "https://api.hypixel.net/v2/resources/skyblock/items";
+
+    static getPrice(itemName) {
+        let realName = Prices.priceData.itemAPI?.[itemName] || itemName;
+        if (realName == null) {
+            return 0;
+        }
+
+        if (Prices.priceData.bzPrices.products?.[realName]) {
+            return Prices.priceData.bzPrices.products[realName].quick_status.sellPrice;
+        } else if (Prices.priceData.ahPrices?.[realName]) {
+            return Prices.priceData.ahPrices[realName];
+        }
+
+        switch(itemName) {
+            case "Wither Essence":
+                return Prices.getPrice("ESSENCE_WITHER");
+            case "Undead Essence":
+                return Prices.getPrice("ESSENCE_UNDEAD");
+        }
+
+        if (itemName.includes("Enchanted Book")) {
+            return Prices.getPrice(Prices.bookToName(itemName));
+        }
+        return 0;
+    }
+
+    // ENCHANTMENT_ULTIMATE_BANK_1
+    static UltimateEnchants = new Set(["Bank", "Combo", "One For All", "Soul Eater", "Swarm", "Ultimate Jerry", "Ultimate Wise", "Rend", "Last Stand", "Legion", "No Pain No Gain", "Wisdom"]);
+    static bookToName(itemName) {
+        let nameMatch = itemName.match(/Enchanted Book \((.+) (I|II|III|IV|V|VI|VII|VIII|IX|X)\)/);
+        if (!nameMatch?.[1] || !nameMatch?.[2]) {
+            return null;
+        }
+        let fullName = "ENCHANTMENT_";
+        let enchantName = nameMatch[1];
+        let enchantLevel = nameMatch[2];
+
+        if (Prices.UltimateEnchants.has(enchantName)) {
+            fullName = fullName + "ULTIMATE_";
+        }
+
+        enchantName = enchantName.toUpperCase().replace(" ", "_");
+        return fullName + enchantName + "_" + (Utils.toRoman.indexOf(enchantLevel) + 1);
+    }
+
+    static checkPrices() {
+        if (!Prices.priceData.bzPrices || Date.now() - Prices.priceData.bzPrices.lastUpdated > 43200000) {
+            Prices.updateBZPrices();
+        }
+
+        if (Date.now() - Prices.priceData.ahLastUpdated > 43200000) {
+            Prices.updateAHPrices();
+        }
+
+        if (!Prices.priceData.itemAPI || Date.now() - Prices.priceData.itemAPI.lastUpdated > 43200000) {
+            Prices.updateItemAPI();
+        }
+    }
+
+    static updateItemAPI() {
+        request(Prices.itemApiURL)
+            .then(function(res) {
+                let tempItemData = JSON.parse(res);
+                let nameToID = {
+                    lastUpdated: tempItemData.lastUpdated
+                };
+                let nameToColor = {};
+                
+                for (let item of tempItemData.items) {
+                    nameToID[item.name] = item.id;
+                    nameToColor[item.name] = item.tier;
+                }
+
+                Prices.priceData.itemAPI = nameToID;
+                Prices.priceData.nameToColor = nameToColor;
+                Prices.priceData.save();
+            });
+    }
+
+    static updateBZPrices() {
+        request(Prices.bzURL)
+            .then(function(res) {
+                Prices.priceData.bzPrices = JSON.parse(res);
+                Prices.priceData.save();
+            });
+    }
+
+    static updateAHPrices() {
+        request(Prices.ahURL)
+            .then(function(res) {
+                Prices.priceData.ahPrices = JSON.parse(res);
+                Prices.priceData.AHLASTUPDATED = Date.now();
+                Prices.priceData.save();
+            });
+    }
+}
+
+
 class DungeonSession {
     static CommandList = ["start", "end", "view"];
     
@@ -1240,7 +1370,7 @@ class DungeonSession {
         ChatLib.chat(`&7-------------&3Loot&7-------------`);
 
         for (let name of Object.keys(tempData.loot)) {
-            ChatLib.chat(`&8${name}&7: &f${tempData.loot[name]}`);
+            ChatLib.chat(`&8${name}&7: &f${tempData.loot[name]} ($${getPrice(name) * tempData.loot[name]})`);
         }
     }
 

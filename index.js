@@ -684,8 +684,9 @@ class DungeonRun {
                             if (this.partyMembers[name] != "Mage" && this.partyMembers[name] != "Archer") {
                                 continue;
                             }
+
                             let brDoneAt = this.splits[or][type];
-                            let runStartedAt = this.splits[DungeonRun.SplitType.START, DungeonRun.SplitType.RUN];
+                            let runStartedAt = this.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.RUN];
                             let brTime = [brDoneAt[0] - runStartedAt[0], brDoneAt[1] - runStartedAt[1]];
                             getPlayerByName(name, BigPlayer.TaskType.UPDATE, [BigPlayer.TaskType.BR, brTime[0], brTime[1]]);
                         }
@@ -730,7 +731,7 @@ class DungeonRun {
         }
     
         const Scoreboard = TabList?.getNames();
-        
+
         if (!Scoreboard || Scoreboard?.length === 0) {
             return;
         }
@@ -1374,12 +1375,13 @@ class DungeonSession {
         ChatLib.chat(`&3Current Session`);
         
         if (this.floor != null) {
-            ChatLib.chat(`&7>> &0Floor&f: ${this.floor}`);
+            ChatLib.chat(`&7>> &9Floor&f: ${this.floor}`);
         }
 
         ChatLib.chat(`&7>> &9Runs&f: ${this.numRuns}`);
-        ChatLib.chat(`&7>> &9Avg Time&f: ${(Date.now() - this.startedAt) / 60000} minutes`);
+        ChatLib.chat(`&7>> &9Time&f: ${(Date.now() - this.startedAt) / 60000} minutes`);
         ChatLib.chat(`&7>> &9Avg Score&f: ${this.averageScore}`);
+        ChatLib.chat(`&7>> &9Avg Time&f: ${this.averageTime}`);
         ChatLib.chat(`&7-------------&3Loot&7-------------`);
         Utils.printFloorLoot(this.loot, false);
     }

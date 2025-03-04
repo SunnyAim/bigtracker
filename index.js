@@ -453,6 +453,28 @@ class BigPlayer {
         }
     }
 
+    static splitTimings = {
+        "SS": {
+            avg: [13000, 14000],
+            pb: [12000, 13000]
+        },
+        "BR": {
+            avg: [25000, 32000]
+        },
+        "CAMP": {
+            avg: [66000, 70000],
+            pb: [61000, 65000]
+        },
+        "TERMS": {
+            avg: [45000, 51000],
+            pb: [40000, 45000]
+        },
+        "RUNDONE": {
+            avg: [330000, 360000],
+            pb: [310000, 330000]
+        }
+    };
+
     printPlayer() {
         Utils.chatMsgClickURL(`&7>> &b${this.playerData["USERNAME"]}`, `${BigCommand.nameHistorySite[data.nameHistory]}${this.playerData["UUID"]}`);
         if (this.playerData?.["CLASS"] != undefined) {
@@ -484,122 +506,52 @@ class BigPlayer {
                 ChatLib.chat(`&9Last Run &7>> &f${((Date.now() - this.playerData["LASTRUN"]) / 86400000).toFixed(2)}d ago`);
             }
 
-            let pbString = "&9PBs &7>> ";
+            for (let bigSplit of Object.keys(BigPlayer.splitTimings)) {
+                let splitStr = `&9${bigSplit} &7>> &f`;
 
-            if (this.playerData?.["SSpb"]) {
-                pbString += "&fSS: [";
-                let pbSS = this.playerData["SSpb"];
-                if (pbSS[0] / 1000 < 12) pbString += `&a`;
-                else if (pbSS[0] / 1000 < 13) pbString += `&e`;
-                else pbString += `&c`;
-                pbSS = Utils.formatMSandTick(pbSS);
-                pbString += `${pbSS[0]}, ${pbSS[1]}&f] &7| &r`;
-            }
-
-            if (this.playerData?.["TERMSpb"]) {
-                pbString += "&fTerms: [";
-                let pbTerms = this.playerData["TERMSpb"];
-                if (pbTerms[0] / 1000 < 40) pbString += `&a`;
-                else if (pbTerms[0] / 1000 < 45) pbString += `&e`;
-                else pbString += `&c`;
-                pbTerms = Utils.formatMSandTick(pbTerms);
-                pbString += `${pbTerms}&f] &7| &r`;
-            }
-
-            if (this.playerData?.["RUNDONEpb"]) {
-                pbString += "&fRun: [";
-                let pbRun = this.playerData["RUNDONEpb"];
-                if (pbRun[0] / 1000 < 310) pbString += `&a`;
-                else if (pbRun[0] / 1000 < 330) pbString += `&e`;
-                else pbString += `&c`;
-                pbRun = Utils.formatMSandTick(pbRun);
-                pbString += `${pbRun[0]}, ${pbRun[1]}&f] &7| &r`;
-            }
-
-            if (this.playerData?.["CAMPpb"]) {
-                pbString += "&fCamp: [";
-                let pbCamp = this.playerData["CAMPpb"];
-                if (pbCamp[0] / 1000 < 61) pbString += `&a`;
-                else if (pbCamp[0] / 1000 < 65) pbString += `&e`;
-                else pbString += `&c`;
-                pbCamp = Utils.formatMSandTick(pbCamp);
-                pbString += `${pbCamp[0]}, ${pbCamp[1]}&f] &7| &r`;
-            }
-
-            if (pbString != "&9PBs &7>> ") {
-                ChatLib.chat(pbString);
-            }
-
-
-            let medString = "&9AVGs &7>> ";
-
-            if ("SS" in this.playerData) {
-                let avgSS = this.getAvgOfType(BigPlayer.TaskType.SS);
-
-                if (avgSS != null && !isNaN(avgSS[0])) {
-                    medString += "&fSS: [";
-                    if (avgSS[0] / 1000 < 13) medString += `&a`;
-                    else if (avgSS[0] / 1000 < 14) medString += `&e`;
-                    else medString += `&c`;
-                    avgSS = Utils.formatMSandTick(avgSS);
-                    medString += `${avgSS[0]}, ${avgSS[1]}&f] &7| &r`;
+                if (bigSplit in this.playerData) {
+                    let avg = this.getAvgOfType(bigSplit);
+                    
+                    if (avg == null || isNaN(avg[0])) {
+                        continue;
+                    }
+                    
+                    splitStr += `&6AVG: &7[`;
+                    if (avg[0] < BigPlayer.splitTimings[bigSplit].avg[0]) {
+                        splitStr += `&a`;
+                    } else if (avg[0] < BigPlayer.splitTimings[bigSplit].avg[1]) {
+                        splitStr += `&e`;
+                    } else {
+                        splitStr += `&c`;
+                    }
+                    let tempTime = Utils.formatMSandTick(avg);
+                    splitStr += `${tempTime[0]}, ${tempTime[1]}`;
+                    splitStr += '&7] &8| | ';
                 }
-            }
 
-            if ("BR" in this.playerData) {
-                let avgBR = this.getAvgOfType(BigPlayer.TaskType.BR); 
-
-                if (avgBR != null && !isNaN(avgBR[0])) {
-                    medString += "&fBR: [";
-                    if (avgBR[0] / 1000 < 25) medString += `&a`;
-                    else if (avgBR[0] / 1000 < 32) medString += `&e`;
-                    else medString += `&c`;
-                    avgBR = Utils.formatMSandTick(avgBR);
-                    medString += `${avgBR[0]}, ${avgBR[1]}&f] &7| &r`;
+                if (bigSplit != "BR" && this.playerData?.[bigSplit + "pb"]) {
+                    splitStr += `&6PB: &7[`;
+                    let pb = this.playerData[bigSplit + "pb"];
+                    
+                    if (pb == null || isNaN(pb[0])) {
+                        continue;
+                    }
+                    
+                    if (pb[0] < BigPlayer.splitTimings[bigSplit].pb[0]) {
+                        splitStr += `&a`;
+                    } else if (pb[0] < BigPlayer.splitTimings[bigSplit].pb[1]) {
+                        splitStr += `&e`;
+                    } else {
+                        splitStr += `&c`;
+                    }
+                    let tempTime = Utils.formatMSandTick(pb);
+                    splitStr += `${tempTime[0]}, ${tempTime[1]}`;
+                    splitStr += '&7]';
                 }
-            }
 
-            if ("CAMP" in this.playerData) {
-                let avgCamp = this.getAvgOfType(DungeonRun.SplitType.CAMP);
-
-                if (avgCamp != null && !isNaN(avgCamp[0])) {
-                    medString += "&fCamp: [";
-                    if (avgCamp[0] / 1000 < 66) medString += `&a`;
-                    else if (avgCamp[0] / 1000 < 70) medString += `&e`;
-                    else medString += `&c`;
-                    avgCamp = Utils.formatMSandTick(avgCamp);
-                    medString += `${avgCamp[0]}, ${avgCamp[1]}&f] &7| &r`;
-                }
-            }
-
-            if ("TERMS" in this.playerData) {
-                let avgTerms = this.getAvgOfType(BigPlayer.TaskType.TERMS);
-
-                if (avgTerms != null && !isNaN(avgTerms[0])) {
-                    medString += "&fTerms: [";
-                    if (avgTerms[0] / 1000 < 45) medString += `&a`;
-                    else if (avgTerms[0] / 1000 < 51) medString += `&e`;
-                    else medString += `&c`;
-                    avgTerms = Utils.formatMSandTick(avgTerms);
-                    medString += `${avgTerms[0]}, ${avgTerms[1]}&f] &7| &r`;
-                }
-            }
-
-            if ("RUNDONE" in this.playerData) {
-                let avgRun = this.getAvgOfType(BigPlayer.TaskType.RUNDONE);
-
-                if (avgRun != null && !isNaN(avgRun[0])) {
-                    medString += "&fRun: [";
-                    if (avgRun[0] / 1000 < 330) medString += `&a`;
-                    else if (avgRun[0] / 1000 < 360) medString += `&e`;
-                    else medString += `&c`;
-                    avgRun = Utils.formatMSandTick(avgRun);
-                    medString += `${avgRun[0]}, ${avgRun[1]}&f] &7| &r`;
-                }
-            }
-
-            if (medString != "&9AVGs &7>> ") {
-                ChatLib.chat(medString);
+                if (splitStr != `&9${bigSplit} &7>> &f`) {
+                    ChatLib.chat(splitStr);
+                }   
             }
 
             if ("pre4raten" in this.playerData && this.playerData["pre4raten"] != 0) {

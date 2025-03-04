@@ -524,7 +524,9 @@ class BigPlayer {
                     } else {
                         splitStr += `&c`;
                     }
-                    let tempTime = Utils.formatMSandTick(avg);
+                    
+                    let tempTime = Utils.formatMSandTick(avg, bigSplit == "RUNDONE" ? 0 : 2);
+                    
                     splitStr += `${tempTime[0]}, ${tempTime[1]}`;
                     splitStr += '&7] &8| | ';
                 }
@@ -544,7 +546,9 @@ class BigPlayer {
                     } else {
                         splitStr += `&c`;
                     }
-                    let tempTime = Utils.formatMSandTick(pb);
+
+                    let tempTime = Utils.formatMSandTick(pb, bigSplit == "RUNDONE" ? 0 : 2);
+                
                     splitStr += `${tempTime[0]}, ${tempTime[1]}`;
                     splitStr += '&7]';
                 }
@@ -834,7 +838,7 @@ class Utils {
         return num?.toString()?.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
     }
 
-    static formatMSandTick(times) {
+    static formatMSandTick(times, howManyDecimals=2) {
         let seconds = times[0] / 1000;
         let ticks = times[1] / 20;
 
@@ -843,11 +847,11 @@ class Utils {
         if (seconds > 60) {
             timeStr += `${Math.trunc(seconds / 60)}m `
         }
-        timeStr += `${(seconds % 60).toFixed(2)}s`;
+        timeStr += `${(seconds % 60).toFixed(howManyDecimals)}s`;
         if (ticks > 60) {
             tickStr += `${Math.trunc(ticks / 60)}m `
         }
-        tickStr += `${(ticks % 60).toFixed(2)}s`;
+        tickStr += `${(ticks % 60).toFixed(howManyDecimals)}s`;
 
         return [timeStr, tickStr];
     }

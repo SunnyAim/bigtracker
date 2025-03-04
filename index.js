@@ -1379,9 +1379,9 @@ class DungeonSession {
         }
 
         ChatLib.chat(`&7>> &9Runs&f: ${this.numRuns}`);
-        ChatLib.chat(`&7>> &9Time&f: ${(Date.now() - this.startedAt) / 60000} minutes`);
+        ChatLib.chat(`&7>> &9Time&f: ${Math.trunc((Date.now() - this.startedAt) / 60000)}m ${Math.trunc((Date.now() - this.startedAt) % 60000)}s`);
         ChatLib.chat(`&7>> &9Avg Score&f: ${this.averageScore}`);
-        ChatLib.chat(`&7>> &9Avg Time&f: ${this.averageTime}`);
+        ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(this.averageTime)}`);
         ChatLib.chat(`&7-------------&3Loot&7-------------`);
         Utils.printFloorLoot(this.loot, false);
     }

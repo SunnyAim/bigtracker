@@ -1261,8 +1261,8 @@ class Prices {
             return 0;
         }
 
-        if (Prices.priceData?.bzPrices?.products?.[realName]) {
-            return Prices.priceData?.bzPrices.products[realName].quick_status.sellPrice;
+        if (Prices.priceData?.bzPrices?.[realName]) {
+            return Prices.priceData?.bzPrices[realName];
         } else if (Prices.priceData?.ahPrices?.[realName]) {
             return Prices.priceData?.ahPrices[realName];
         }
@@ -1336,7 +1336,17 @@ class Prices {
     static updateBZPrices() {
         request(Prices.bzURL)
             .then(function(res) {
-                Prices.priceData.bzPrices = JSON.parse(res);
+                let tempBzPrices = JSON.parse(res);
+                let realBzPrices = {
+                    lastUpdated: tempBzPrices.lastUpdated
+                };
+
+                for (let itemName of Object.keys(tempBzPrices.products)) {
+                    console.log(itemName)
+                    realBzPrices[itemName] = tempBzPrices.products[itemName].quick_status.sellPrice;
+                }
+
+                Prices.priceData.bzPrices = realBzPrices;
                 Prices.priceData.save();
             });
     }
@@ -1571,13 +1581,13 @@ if (data.firstTime) {
                 let convert = {
                     UUID: fileData["UUID"],
                     USERNAME: fileData["USERNAME"],
-                    NOTE: fileData["NOTE"],
-                    DODGE: fileData["DODGE"],
-                    DODGELENGTH: fileData["DODGELENGTH"],
-                    DODGEDATE: fileData["DODGEDATE"],
-                    RUNS: fileData["NUMRUNS"],
-                    LASTRUN: fileData["LASTSESSION"],
-                    DEATHS: fileData["DEATHS"],
+                    NOTE: (fileData?.["NOTE"] || ""),
+                    DODGE: fileData?.["DODGE"],
+                    DODGELENGTH: (fileData?.["DODGELENGTH"] || 0),
+                    DODGEDATE: (fileData?.["DODGEDATE"] || 0),
+                    RUNS: (fileData?.["NUMRUNS"] || 0),
+                    LASTRUN: (fileData?.["LASTSESSION"] || 0),
+                    DEATHS: (fileData?.["DEATHS"] || 0),
                     pre4rate: (fileData?.["PRE4RATE"] || 0),
                     pre4raten: (fileData?.["PRE4RATEN"] || 0)
                 }

@@ -730,44 +730,52 @@ class DungeonRun {
         }
     
         const Scoreboard = TabList?.getNames();
+        
         if (!Scoreboard || Scoreboard?.length === 0) {
             return;
         }
     
-        this.numPartyMembers = parseInt(Scoreboard[0]?.charAt(28));
+        this.numPartyMembers = parseInt(Scoreboard?.[0]?.charAt(28));
+
+        if (!this.numPartyMembers) {
+            return;
+        }
+
         let deadPlayer = false;
         let tempPartyMembers = {};
     
         soloRun = this.numPartyMembers == 1;
     
-        for (let i = 1; i < Scoreboard.length; i++) {
-            if (Object.keys(tempPartyMembers).length === this.numPartyMembers || Scoreboard[i].includes("Player Stats")) {
-                break;
-            }
-    
-            if (Scoreboard[i].includes("[")) {
-                let line = Scoreboard[i].removeFormatting();
-                // [LVL] ?youtube? name ? (Class/Dead ?LVL)
-                // /\[\d+\].* ([a-zA-Z0-9_]{3,16}) .*\((Archer|Mage|Tank|Berserk|Healer|DEAD|EMPTY).*\)/
-                let match = line.match(/\[\d+\].* ([a-zA-Z0-9_]{3,16}) .*\((Archer|Mage|Tank|Berserk|Healer|DEAD|EMPTY).*\)/);
-                let name = match?.[1]?.toLowerCase();
-                let playerClass = match?.[2]?.trim();
-    
-                if (!name || !playerClass) {
-                    deadPlayer = true;
-                    continue;
+        try {
+            for (let i = 1; i < Scoreboard.length; i++) {
+                if (Object.keys(tempPartyMembers).length === this.numPartyMembers || Scoreboard[i].includes("Player Stats")) {
+                    break;
                 }
-    
-                if (playerClass == "DEAD" || playerClass == "EMPTY") {
-                    deadPlayer = true;
+        
+                if (Scoreboard[i].includes("[")) {
+                    let line = Scoreboard[i].removeFormatting();
+                    // [LVL] ?youtube? name ? (Class/Dead ?LVL)
+                    // /\[\d+\].* ([a-zA-Z0-9_]{3,16}) .*\((Archer|Mage|Tank|Berserk|Healer|DEAD|EMPTY).*\)/
+                    let match = line.match(/\[\d+\].* ([a-zA-Z0-9_]{3,16}) .*\((Archer|Mage|Tank|Berserk|Healer|DEAD|EMPTY).*\)/);
+                    let name = match?.[1]?.toLowerCase();
+                    let playerClass = match?.[2]?.trim();
+        
+                    if (!name || !playerClass) {
+                        deadPlayer = true;
+                        continue;
+                    }
+        
+                    if (playerClass == "DEAD" || playerClass == "EMPTY") {
+                        deadPlayer = true;
+                    }
+        
+                    tempPartyMembers[name] = playerClass;
                 }
-    
-                tempPartyMembers[name] = playerClass;
+        
+                this.gotAllMembers = !deadPlayer;
+                this.partyMembers = tempPartyMembers;
             }
-    
-            this.gotAllMembers = !deadPlayer;
-            this.partyMembers = tempPartyMembers;
-        }
+        } catch (e) {console.log(e)}
     }
 }
 
@@ -990,9 +998,8 @@ class BigCommand {
 
     static session(args) {
         if (!args?.[1]) {
-            ChatLib.chat(`/${BigCommand.cmdName} session`);
-            ChatLib.chat(DungeonSession.CommandList.join(", "));
-            Utils.chatMsgClickCMD(`Current Session: ${BigCommand.dungeonSession != null ? "active" : "inactive"}`, `/${BigCommand.cmdName} session view`);
+            ChatLib.chat(`/${BigCommand.cmdName} session [${DungeonSession.CommandList.join(", ")}]`);
+            Utils.chatMsgClickCMD(`&7>> &fCurrent Session: ${BigCommand.dungeonSession != null ? "&aactive" : "&cinactive"} &7(click to view sessions)`, `/${BigCommand.cmdName} session view`);
             return;
         }
 
@@ -1056,15 +1063,15 @@ class BigCommand {
         let sessionList = new File("./config/ChatTriggers/modules/bigtracker/bigsessions").list().reverse();
         let totalPages = Math.ceil(sessionList.length / pageLength);
 
-        ChatLib.chat(`&7-------------&3Page ${page+1}&7-------------`);
-        for (let i = page*pageLength; i < pageLength+(page*pageLength); i++) {
+        ChatLib.chat(`&7-------------&3Page ${page + 1}&7-------------`);
+        for (let i = page * pageLength; i < pageLength + (page * pageLength); i++) {
             try {
                 Utils.chatMsgClickCMD(`${new Date(parseInt(sessionList[i].replace(".json", ""))).toString()}`, `/${BigCommand.cmdName} session viewfile ${sessionList[i]}`);
             } catch (e) {} // i cba to write proper logic for this and i think this will work so whatever
         }
-        ChatLib.chat(`&7Page: ${page+1}/${totalPages}`);
-        if (page+1 < totalPages) {
-            Utils.chatMsgClickCMD("&7>>> &cNext Page &7>>>", `/${BigCommand.cmdName} session view old ${page+1}`);
+        ChatLib.chat(`&7Page: ${page + 1}/${totalPages}`);
+        if (page + 1 < totalPages) {
+            Utils.chatMsgClickCMD("&7>>> &cNext Page &7>>>", `/${BigCommand.cmdName} session view old ${page + 1}`);
         }
     }
 

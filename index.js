@@ -1166,13 +1166,13 @@ class BigCommand {
         floorStr += Utils.toRoman[parseInt(floor.charAt(1)) - 1];
 
         let floorLoot = runData["chests"]?.[floorStr];
-        Utils.chatMsgClickCMD(`&fLoot for &c${floorStr}`, `/${BigCommand.cmdName} floorstats ${floor}`);
 
         if (!floorLoot) {
             ChatLib.chat("&cInvalid Floor or no loot tracked for that floor");
             return;
         }
 
+        Utils.chatMsgClickCMD(`&fLoot for &c${floorStr}`, `/${BigCommand.cmdName} floorstats ${floor}`);
         Utils.printFloorLoot(floorLoot);
     }
 
@@ -1555,6 +1555,15 @@ if (data.firstTime) {
 
     if (FileLib.exists("./config/ChatTriggers/modules/bigtracker/players")) {
         let files = new File("./config/ChatTriggers/modules/bigtracker/players").list();
+        
+        const toConvertHelp = {
+            "SSTRACKING": ["SS", "SSpb", "SSPB"],
+            "BRTRACKING": ["BR"],
+            "TERMSTRACKING": ["TERMS", "TERMSpb", "TERMSPB"],
+            "RUNTIMETRACKING": ["RUNDONE", "RUNDONEpb", "RUNPB"],
+            "CAMPSTRACKING": ["CAMP", "CAMPpb", "CAMPPB"]
+        };
+
         for (let i = 0; i < files.length; i++) {
             try {
                 let fileData = FileLib.read(`./config/ChatTriggers/modules/bigtracker/players/${files[i]}`);
@@ -1573,43 +1582,21 @@ if (data.firstTime) {
                     pre4raten: (fileData?.["PRE4RATEN"] || 0)
                 }
 
-                
-                if (fileData["SSTRACKING"] && fileData["SSTRACKING"].length != 0) {
-                    let tempSS = [];
-                    fileData["SSTRACKING"].forEach(ss => tempSS.push([ss * 1000, ss * 20]));
-                    convert["SS"] = tempSS;
-                    convert["SSpb"] = [fileData["SSPB"] * 1000, fileData["SSPB"] * 20];
-                }
+                for (let key of Object.keys(toConvertHelp)) {
+                    if (!fileData[key] || fileData[key].length == 0) {
+                        continue;
+                    }
 
-                
-                if (fileData["BRTRACKING"] && fileData["BRTRACKING"].length != 0) {
-                    let tempBR = [];
-                    fileData["BRTRACKING"].forEach(br => tempBR.push([br * 1000, br * 20]));
-                    convert["BR"] = tempBR;
-                }
+                    let temp = [];
+                    fileData[key].forEach(k => temp.push([k * 1000, k * 20]));
+                    let t = toConvertHelp[key];
+                    convert[t[0]] = temp;
 
-                
-                if (fileData["TERMSTRACKING"] && fileData["TERMSTRACKING"].length != 0) {
-                    let tempTerms = [];
-                    fileData["TERMSTRACKING"].forEach(terms => tempTerms.push([terms * 1000, terms * 20]));
-                    convert["TERMS"] = tempTerms;
-                    convert["TERMSpb"] = [fileData["TERMSPB"] * 1000, fileData["TERMSPB"] * 20];
-                }
+                    if (key == "BRTRACKING") {
+                        continue;
+                    }
 
-                
-                if (fileData["RUNTIMETRACKING"] && fileData["RUNTIMETRACKING"].length != 0) {
-                    let tempRun = [];
-                    fileData["RUNTIMETRACKING"].forEach(run => tempRun.push([run * 1000, run * 20]));
-                    convert["RUNDONE"] = tempRun;
-                    convert["RUNDONEpb"] = [fileData["RUNPB"] * 1000, fileData["RUNPB"] * 20];
-                }
-
-                
-                if (fileData["CAMPSTRACKING"] && fileData["CAMPSTRACKING"].length != 0) {
-                    let tempCamp = [];
-                    fileData["CAMPSTRACKING"].forEach(camp => tempCamp.push([camp * 1000, camp * 20]));
-                    convert["CAMP"] = tempCamp;
-                    convert["CAMPpb"] = [fileData["CAMPPB"] * 1000, fileData["CAMPPB"] * 20];
+                    convert[t[1]] = [fileData[t[2]] * 1000, fileData[t[2]] * 20];
                 }
 
                 new BigPlayer(convert.UUID, convert.USERNAME, convert);

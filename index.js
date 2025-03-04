@@ -999,8 +999,12 @@ class BigCommand {
 
     static session(args) {
         if (!args?.[1]) {
-            ChatLib.chat(`/${BigCommand.cmdName} session [${DungeonSession.CommandList.join(", ")}]`);
+            if (BigCommand.dungeonSession != null) {
+                BigCommand.dungeonSession.view();
+            } else {
+                ChatLib.chat(`/${BigCommand.cmdName} session [${DungeonSession.CommandList.join(", ")}]`);
             Utils.chatMsgClickCMD(`&7>> &fCurrent Session: ${BigCommand.dungeonSession != null ? "&aactive" : "&cinactive"} &7(click to view sessions)`, `/${BigCommand.cmdName} session view`);
+            }
             return;
         }
 
@@ -1009,6 +1013,7 @@ class BigCommand {
                 if (BigCommand.dungeonSession != null) {
                     BigCommand.dungeonSession.saveSession();
                 }
+                
                 BigCommand.dungeonSession = new DungeonSession();
                 break;
             case "end":
@@ -1016,6 +1021,7 @@ class BigCommand {
                     ChatLib.chat(`You don't have an active dungeon session to end`);
                     return;
                 }
+                
                 BigCommand.dungeonSession.saveSession();
                 BigCommand.dungeonSession = null;
                 break;
@@ -1032,18 +1038,43 @@ class BigCommand {
                     ChatLib.chat("no filename included");
                     return;
                 }
+                
                 DungeonSession.viewFile(args[2]);
                 break;
             case "viewteammates":
                 if (!args?.[2]) {
-                    ChatLib.chat("no teammates");
+                    ChatLib.chat("no filename");
                     return;
                 }
-                let teammateArray = args[2].split(",");
-                teammateArray.forEach(name => {
-                    Utils.chatMsgClickCMD(`&7>> &f${name}`, `/${BigCommand.cmdName} ${name}`);
-                });
+
+                DungeonSession.viewFileTeam(args[2]);
                 break;
+            case "rungoal": {
+                if (!args?.[2]) {
+                    ChatLib.chat("no number");
+                    return;
+                }
+
+                let goal = 0;
+
+                if (BigCommand.dungeonSession != null && args[2].includes("+")) {
+                    goal = BigCommand.dungeonSession.numRuns + parseInt(args[2].split("+")[1]);
+                } else {
+                    goal = parseInt(args[2]);
+                }
+
+                if (isNaN(goal)) {
+                    ChatLib.chat("error parsing goal number");
+                    return;
+                }
+
+                if (BigCommand.dungeonSession == null) {
+                    BigCommand.dungeonSession = new DungeonSession();
+                }
+
+                BigCommand.dungeonSession.runGoal = goal;
+                break;
+            }
         }
     }
 
@@ -1066,9 +1097,13 @@ class BigCommand {
 
         ChatLib.chat(`&7-------------&3Page ${page + 1}&7-------------`);
         for (let i = page * pageLength; i < pageLength + (page * pageLength); i++) {
+            if (i >= sessionList.length) {
+                break;
+            }
+
             try {
                 Utils.chatMsgClickCMD(`${new Date(parseInt(sessionList[i].replace(".json", ""))).toString()}`, `/${BigCommand.cmdName} session viewfile ${sessionList[i]}`);
-            } catch (e) {} // i cba to write proper logic for this and i think this will work so whatever
+            } catch (e) {}
         }
         ChatLib.chat(`&7Page: ${page + 1}/${totalPages}`);
         if (page + 1 < totalPages) {
@@ -1350,16 +1385,34 @@ class DungeonSession {
             ChatLib.chat(`&7>> &9Floor&f: ${tempData.floor}`);
         }
         ChatLib.chat(`&7>> &9Time Spent&f: ${Math.trunc(tempData.totalTime / 60000)} minutes`);
-        ChatLib.chat(`&7>> &9Score&f: ${tempData.averageScore}`);
+        
+        if (tempData.scores.length != 0) {
+            ChatLib.chat(`&7>> &9S+ Rate&f: ${((tempData.scores.filter(x => x >= 300).length / tempData.scores.length) * 100).toFixed(1)}%`);
+        }
+        
         ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(tempData.averageTime)}`);
-        Utils.chatMsgClickCMD(`&7>> &9Teammates&f: ${tempData.teammates.join(", ")}`, `/${BigCommand.cmdName} session viewteammates ${tempData.teammates.join(",")}`);
-        ChatLib.chat(`&7>> &9Scores&f: ${tempData.scores.join(", ")}`);
-        ChatLib.chat(`&7-------------&3Loot&7-------------`);
-        Utils.printFloorLoot(tempData.loot, false);
+        Utils.chatMsgClickCMD(`&7>> &9Teammates&f: ${tempData.teammates.join(", ")}`, `/${BigCommand.cmdName} session viewteammates ${filename}`);
+        if (Object.keys(tempData.loot).length != 0) {
+            ChatLib.chat(`&7-------------&3Loot&7-------------`);
+            Utils.printFloorLoot(tempData.loot, false);
+        }
+    }
+
+    static viewFileTeam(filename) {
+        if (!FileLib.exists(`./config/ChatTriggers/modules/bigtracker/bigsessions/${filename}`)) {
+            ChatLib.chat(`Session file not found`);
+            return;
+        }
+
+        let tempData = new PogObject("bigtracker/bigsessions", {}, filename);
+        tempData.teammates.forEach(name => {
+            Utils.chatMsgClickCMD(`&7>> &f${name}`, `/${BigCommand.cmdName} ${name}`);
+        });
     }
 
     constructor() {
         this.numRuns = 0;
+        this.runGoal = 0;
         this.loot = {};
         this.averageScore = 0;
         this.averageTime = 0;
@@ -1382,8 +1435,10 @@ class DungeonSession {
         ChatLib.chat(`&7>> &9Time&f: ${Math.trunc((Date.now() - this.startedAt) / 60000)}m ${Math.trunc((Date.now() - this.startedAt) % 60000)}s`);
         ChatLib.chat(`&7>> &9Avg Score&f: ${this.averageScore}`);
         ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(this.averageTime)}`);
-        ChatLib.chat(`&7-------------&3Loot&7-------------`);
-        Utils.printFloorLoot(this.loot, false);
+        if (Object.keys(loot).length != 0) {
+            ChatLib.chat(`&7-------------&3Loot&7-------------`);
+            Utils.printFloorLoot(this.loot, false);
+        }
     }
 
     endRun(time, score, floor) {
@@ -1399,6 +1454,13 @@ class DungeonSession {
         this.runTimes.push(time);
         this.scores.push(score);
         this.numRuns += 1;
+
+        if (this.runGoal != 0 && this.numRuns == this.runGoal) {
+            setTimeout( () => {
+                ChatLib.chat(`&7-------------&3Session Goal Reached&7-------------`);
+                this.view();
+            }, 1000);
+        }
     }
 
     saveSession() {

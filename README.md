@@ -4,13 +4,5 @@ tracks stats of people you play with in party finder. lets you dodge them if you
 tutorial:
 
 
-https://github.com/user-attachments/assets/990a0648-f034-4715-adc1-becca3be0699
 
-
-
-
-
-![image](https://github.com/user-attachments/assets/bc96198a-5e6b-4145-811d-ad62a8b67bed)
-
-![image](https://github.com/user-attachments/assets/67043f97-833e-43f8-9561-52f1f1cc92d7)
-
+https://github.com/user-attachments/assets/7163fd18-35c5-40bd-a32c-37804cf63e27

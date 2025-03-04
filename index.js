@@ -828,9 +828,9 @@ class Utils {
             let price = Math.trunc(Prices.getPrice(type));
             totalCoins += price;
             if (price == 0) {
-                ChatLib.chat(`&a${type}&7: ${floorLoot[type]}`);
+                ChatLib.chat(`&b${floorLoot[type]}x &a${type}`);
             } else {
-                ChatLib.chat(`&a${type}&7: ${floorLoot[type]} &a(&6${Utils.formatNumber(price)}&a) = &6${Utils.formatNumber(price * floorLoot[type])}`);
+                ChatLib.chat(`&b${floorLoot[type]}x &a${type} &a(&6${Utils.formatNumber(price)}&a) = &6${Utils.formatNumber(price * floorLoot[type])}`);
             }
         }
 
@@ -841,7 +841,7 @@ class Utils {
 
             let price = Math.trunc(Prices.getPrice(type));
             totalCoins += price;
-            ChatLib.chat(`&e${type}&7: ${floorLoot[type]} &a(&6${Utils.formatNumber(price)}&a) = &6${Utils.formatNumber(price * floorLoot[type])}`);
+            ChatLib.chat(`&b${floorLoot[type]}x &e${type} &a(&6${Utils.formatNumber(price)}&a) = &6${Utils.formatNumber(price * floorLoot[type])}`);
         }
 
         for (let type of Object.keys(floorLoot)) {
@@ -852,7 +852,7 @@ class Utils {
             // let colorName = Prices.priceData.itemAPI?.[type] || type;
             let price = Math.trunc(Prices.getPrice(type));
             totalCoins += price;
-            ChatLib.chat(`&b${type}&7: ${floorLoot[type]} &a(&6${Utils.formatNumber(price)}&a) = &6${Utils.formatNumber(price * floorLoot[type])}`);
+            ChatLib.chat(`&b${floorLoot[type]}x &d${type} &a(&6${Utils.formatNumber(price)}&a) = &6${Utils.formatNumber(price * floorLoot[type])}`);
         }
 
         if (printTotal) {

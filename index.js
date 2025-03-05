@@ -629,7 +629,7 @@ class OnTick {
         }
 
         if (this.totalTicks % 24000) {
-            if (BigCommand.dungeonSession != null) {
+            if (BigCommand.dungeonSession != null && ChatHandler.dungeon == null) {
                 if (Date.now() - BigCommand.dungeonSession.lastRunTimestamp > 1000000) {
                     BigCommand.dungeonSession.saveSession();
                     BigCommand.dungeonSession = null;
@@ -816,7 +816,7 @@ class Utils {
             // &a green &6 gold
             // let colorName = Prices.priceData.itemAPI?.[type] || type;
             let price = Math.trunc(Prices.getPrice(type));
-            totalCoins += price;
+            totalCoins += price * floorLoot[type];
             ChatLib.chat(`&b${floorLoot[type]}x &d${type} &a(&6${Utils.formatNumber(price)}&a) = &6${Utils.formatNumber(price * floorLoot[type])}`);
         }
 
@@ -1433,7 +1433,9 @@ class DungeonSession {
 
         ChatLib.chat(`&7>> &9Runs&f: ${this.numRuns}`);
         ChatLib.chat(`&7>> &9Time&f: ${Math.trunc((Date.now() - this.startedAt) / 60000)}m ${Math.trunc((Date.now() - this.startedAt) % 60000)}s`);
-        ChatLib.chat(`&7>> &9Avg Score&f: ${this.averageScore}`);
+        if (this.scores.length != 0) {
+            ChatLib.chat(`&7>> &9S+ Rate&f: ${((this.scores.filter(x => x >= 300).length / this.scores.length) * 100).toFixed(1)}%`);
+        }
         ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(this.averageTime)}`);
         if (Object.keys(loot).length != 0) {
             ChatLib.chat(`&7-------------&3Loot&7-------------`);

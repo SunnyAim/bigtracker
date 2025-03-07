@@ -1432,12 +1432,12 @@ class DungeonSession {
         }
 
         ChatLib.chat(`&7>> &9Runs&f: ${this.numRuns}`);
-        ChatLib.chat(`&7>> &9Time&f: ${Math.trunc((Date.now() - this.startedAt) / 60000)}m ${Math.trunc((Date.now() - this.startedAt) % 60000)}s`);
+        ChatLib.chat(`&7>> &9Time&f: ${Math.trunc((Date.now() - this.startedAt) / 60000)}m`);
         if (this.scores.length != 0) {
             ChatLib.chat(`&7>> &9S+ Rate&f: ${((this.scores.filter(x => x >= 300).length / this.scores.length) * 100).toFixed(1)}%`);
         }
         ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(this.averageTime)}`);
-        if (Object.keys(loot).length != 0) {
+        if (Object.keys(this.loot).length != 0) {
             ChatLib.chat(`&7-------------&3Loot&7-------------`);
             Utils.printFloorLoot(this.loot, false);
         }

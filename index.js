@@ -712,6 +712,10 @@ class DungeonRun {
                         for (let name of Object.keys(this.partyMembers)) {
                             getPlayerByName(name, BigPlayer.TaskType.UPDATE, [DungeonRun.SplitType.TERMS, termTime[0], termTime[1]]);
                         }
+
+                        if (BigCommand.dungeonSession != null) {
+                            BigCommand.dungeonSession.termTimes.push(termTime[0]);
+                        }
                         break;
                 }
                 break;
@@ -930,7 +934,11 @@ class Utils {
     }
 
     static secondsToFormatted(seconds) {
-        return `${Math.trunc(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+        if (seconds < 3600) {
+            return `${Math.trunc(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+        } else {
+            return `${Math.trunc(seconds / 3600)}h ${Math.trunc((seconds % 3600) / 60)}m ${Math.round(seconds % 60)}s`;
+        }
     }
 }
 
@@ -1075,8 +1083,62 @@ class BigCommand {
                 BigCommand.dungeonSession.runGoal = goal;
                 break;
             }
+            case "time":
+                if (!args?.[2]) {
+                    ChatLib.chat("enter a number of days");
+                    return;
+                }
+
+                let days = parseInt(args[2]);
+                if (isNaN(days)) {
+                    ChatLib.chat("give number");
+                    return;
+                }
+
+                days = days;
+                BigCommand.viewSessionsDuringTime(days);
+                break;
         }
     }
+
+    static viewSessionsDuringTime(time) {
+        if (!FileLib.exists("./config/ChatTriggers/modules/bigtracker/bigsessions")) {
+            ChatLib.chat("No sessions exist");
+            new File("./config/ChatTriggers/modules/bigtracker/bigsessions").mkdirs();
+            return;
+        }
+
+        ChatLib.chat(`&7>> &3Viewing Sessions from last &f${time}&3 days`);
+
+        time *= 86400000;
+        const now = Date.now();
+
+        let sessionList = new File("./config/ChatTriggers/modules/bigtracker/bigsessions").list().filter(x => now - x.replace(".json", "") < time);
+
+        let combined = {
+            totalSessions: 0,
+            averageTime: []
+        };
+
+        sessionList.forEach(filename => {
+            combined.totalSessions += 1;
+            let tempData = new PogObject("bigtracker/bigsessions", {}, filename);
+            combined.numRuns = (combined?.numRuns || 0) + (tempData?.numRuns || 0);
+            combined.totalTime = (combined?.totalTime || 0) + (tempData?.totalTime || 0);
+            combined.sPlus = (combined?.sPlus || 0) + (tempData?.scores?.filter(x => x >= 300)?.length || 0);
+            combined.averageTime.push(tempData?.averageTime || 0)
+
+        });
+
+        ChatLib.chat(`&7>> &9Total Sessions&f: ${combined.totalSessions}`);
+        ChatLib.chat(`&7>> &9Runs&f: ${combined.numRuns}`);
+        ChatLib.chat(`&7>> &9Total Time&f: ${Utils.secondsToFormatted(combined.totalTime / 1000)}`);
+        ChatLib.chat(`&7>> &9S+ Rate&f: ${((combined.sPlus / combined.numRuns) * 100).toFixed(1)}%`);
+        if (combined.averageTime.length > 0) {
+            ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(combined.averageTime.reduce((a, b) => a+b) / combined.averageTime.length)}`);
+        }
+    }
+
 
     static oldSessionSearcher(page) {
         if (page == null) {
@@ -1384,13 +1446,18 @@ class DungeonSession {
         if (tempData?.floor) {
             ChatLib.chat(`&7>> &9Floor&f: ${tempData.floor}`);
         }
-        ChatLib.chat(`&7>> &9Time Spent&f: ${Math.trunc(tempData.totalTime / 60000)} minutes`);
+        ChatLib.chat(`&7>> &9Time Spent&f: ${Utils.secondsToFormatted(tempData.totalTime / 1000)}`);
         
         if (tempData.scores.length != 0) {
             ChatLib.chat(`&7>> &9S+ Rate&f: ${((tempData.scores.filter(x => x >= 300).length / tempData.scores.length) * 100).toFixed(1)}%`);
         }
         
         ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(tempData.averageTime)}`);
+
+        if (tempData?.termTimes && tempData.termTimes.length != 0) {
+            ChatLib.chat(`&7>> &9Avg Term Time&f: ${Utils.secondsToFormatted(tempData.termTimes.reduce((a, b) => a+b) / tempData.termTimes.length)}`);
+        }
+
         Utils.chatMsgClickCMD(`&7>> &9Teammates&f: ${tempData.teammates.join(", ")}`, `/${BigCommand.cmdName} session viewteammates ${filename}`);
         if (Object.keys(tempData.loot).length != 0) {
             ChatLib.chat(`&7-------------&3Loot&7-------------`);
@@ -1417,6 +1484,7 @@ class DungeonSession {
         this.averageScore = 0;
         this.averageTime = 0;
         this.runTimes = [];
+        this.termTimes = [];
         this.scores = [];
         this.teammates = new Set();
         this.startedAt = Date.now();
@@ -1437,6 +1505,11 @@ class DungeonSession {
             ChatLib.chat(`&7>> &9S+ Rate&f: ${((this.scores.filter(x => x >= 300).length / this.scores.length) * 100).toFixed(1)}%`);
         }
         ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(this.averageTime)}`);
+        
+        if (this.termTimes.length != 0) {
+            ChatLib.chat(`&7>> &9Avg Term Time&f: ${Utils.secondsToFormatted(this.termTimes.reduce((a, b) => a+b) / this.termTimes.length)}`);
+        }
+
         if (Object.keys(this.loot).length != 0) {
             ChatLib.chat(`&7-------------&3Loot&7-------------`);
             Utils.printFloorLoot(this.loot, false);
@@ -1483,6 +1556,7 @@ class DungeonSession {
             averageScore: this.averageScore,
             averageTime: this.averageTime,
             runTimes: this.runTimes,
+            termTimes: this.termTimes,
             scores: this.scores,
             teammates: Array.from(this.teammates),
             totalTime: Date.now() - this.startedAt,
@@ -1540,6 +1614,7 @@ register("command", (...args) => {
             Utils.chatMsgClickCMD(`&7>> &fauto start session ${data.autoStartSession ? "&aenabled" : "&cdisabled"}`, `/${BigCommand.cmdName} autostart`);
             data.save();
             break;
+        case "sessions":
         case "session":
             BigCommand.session(args);
             break;

@@ -1038,7 +1038,7 @@ register("packetSent", (packet, event) => {
 
 
 class BigCommand {
-    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "session", "autokick", "sayreason", "viewfile", "autostart"];
+    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "session", "runhistorylength", "autokick", "sayreason", "viewfile", "autostart"];
     static cmdName = "big";
     static chestTypes = ["WOOD CHEST REWARDS", "GOLD CHEST REWARDS", "DIAMOND CHEST REWARDS", "EMERALD CHEST REWARDS", "OBSIDIAN CHEST REWARDS", "BEDROCK CHEST REWARDS"];
     static essenceTypes = ["Undead Essence", "Wither Essence"];
@@ -1554,14 +1554,14 @@ class DungeonSession {
 
         if (tempData?.splits) {
             if (tempData.splits.storm.length != 0) {
-                let tempArr = tempData.splits.storm.sort( (a, b) => a + b);
+                let tempArr = tempData.splits.storm.map(x => x[0]).sort( (a, b) => a - b);
                 let avg = tempArr[Math.floor(tempArr.length / 2)];
 
-                ChatLib.chat(`&7>> &9Avg Term Time&f: ${Utils.secondsToFormatted(avg / 1000)} &7[${tempArr.length}]`);
+                ChatLib.chat(`&7>> &9Avg Storm Time&f: ${Utils.secondsToFormatted(avg / 1000)} &7[${tempArr.length}]`);
             }
 
             if (tempData.splits.portal.length != 0) {
-                let tempArr = tempData.splits.portal.sort( (a, b) => a + b);
+                let tempArr = tempData.splits.portal.sort( (a, b) => a - b);
                 let avg = tempArr[Math.floor(tempArr.length / 2)];
 
                 ChatLib.chat(`&7>> &9Avg Portal Time&f: ${Utils.secondsToFormatted(avg / 1000)} &7[${tempArr.length}]`);

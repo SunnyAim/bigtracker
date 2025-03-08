@@ -10,8 +10,6 @@ track s+ rate with a player
 stats stats like number of players logged, num sessions etc.
 
 all floors compatability
-
-track storm and portal splits in session
 */
 
 const S02PacketChat = Java.type("net.minecraft.network.play.server.S02PacketChat");
@@ -163,6 +161,16 @@ class ChatHandler {
                 ChatHandler.dungeon.doSplit(DungeonRun.SplitType.CAMP, DungeonRun.SplitType.END);
                 return;
             }
+        }
+
+        if (text == "[BOSS] Maxor: WELL! WELL! WELL! LOOK WHO'S HERE!") {
+            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.PORTAL, DungeonRun.SplitType.END);
+            return;
+        }
+
+        if (text == "[BOSS] Storm: Pathetic Maxor, just like expected.") {
+            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.STORM, DungeonRun.SplitType.START);
+            return;
         }
 
         if (text == "[BOSS] Goldor: Who dares trespass into my domain?") {
@@ -681,7 +689,9 @@ class DungeonRun {
         END: "END",
         RUN: "RUN",
         CAMP: "CAMP",
-        TERMS: "TERMS"
+        TERMS: "TERMS",
+        PORTAL: "PORTAL",
+        STORM: "STORM"
     });
 
     constructor() {
@@ -718,6 +728,14 @@ class DungeonRun {
                             getPlayerByName(name, BigPlayer.TaskType.UPDATE, [BigPlayer.TaskType.BR, brTime[0], brTime[1]]);
                         }
                         break;
+                    case DungeonRun.SplitType.TERMS:
+                        if (BigCommand.dungeonSession != null) {
+                            let stormStart = this.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.STORM];
+                            let stormEnd = this.splits[or][type];
+                            let stormTime = [stormEnd[0] - stormStart[0], stormEnd[1] - stormStart[1]];
+                            BigCommand.dungeonSession.splits.storm.push(stormTime);
+                        }
+                        break;
                 }
                 break;
             case DungeonRun.SplitType.END:
@@ -742,6 +760,15 @@ class DungeonRun {
 
                         if (BigCommand.dungeonSession != null) {
                             BigCommand.dungeonSession.termTimes.push(termTime[0]);
+                        }
+                        break;
+                    case DungeonRun.SplitType.PORTAL:
+                        let portalStartedAt = this.splits[DungeonRun.SplitType.END][DungeonRun.SplitType.CAMP];
+                        let portalEndedAt = this.splits[or][type];
+                        let portalTime = [portalEndedAt[0] - portalStartedAt[0], portalEndedAt[1] - portalStartedAt[1]];
+                        
+                        if (BigCommand.dungeonSession != null) {
+                            BigCommand.dungeonSession.splits.portal.push(portalTime[0]);
                         }
                         break;
                 }
@@ -1521,6 +1548,10 @@ class DungeonSession {
         this.lastRunTimestamp = Date.now();
         this.floor = null;
         this.xp = {};
+        this.splits = {
+            portal: [],
+            storm: []
+        };
     }
 
     view() {
@@ -1538,11 +1569,23 @@ class DungeonSession {
         ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(this.averageTime)} &7|| &9Fastest &7>> &f${Utils.secondsToFormatted(Math.min(...this.runTimes))}`);
         
         if (this.termTimes.length != 0) {
-            // ChatLib.chat(`&7>> &9Avg Term Time&f: ${Utils.secondsToFormatted(Utils.)}  &7|| &9Fastest &7>> &f${Utils.secondsToFormatted(Math.min(...this.termTimes))}`);
+            let tempArr = this.termTimes.sort((a, b) => a - b);
+            let avg = tempArr[Math.floor(tempArr.length / 2)];
+            ChatLib.chat(`&7>> &9Avg Term Time&f: ${Utils.secondsToFormatted(avg / 1000)} &7[${tempArr.length}]`);
+        }
+
+        if (this.splits.portal.length != 0) {
+            let avg = this.splits.portal.reduce( (a, b) => a + b) / this.splits.portal.length;
+            ChatLib.chat(`&7>> &9Avg Portal Time&f: ${Utils.secondsToFormatted(avg / 1000)} &7[${this.splits.portal.length}]`);
+        }
+
+        if (this.splits.storm.length != 0) {
+            let avg = this.splits.storm.reduce( (a, b) => a + b) / this.splits.storm.length;
+            ChatLib.chat(`&7>> &9Avg Storm Time&f: ${Utils.secondsToFormatted(avg / 1000)} &7[${this.splits.storm.length}]`);
         }
 
         for (let xpType of Object.keys(this.xp)) {
-            ChatLib.chat(`&7>> &9${xpType} XP&f: ${this.xp[xpType]}`);
+            ChatLib.chat(`&7>> &9${xpType} XP&f: ${Utils.formatNumber(this.xp[xpType])}`);
         }
 
         if (Object.keys(this.loot).length != 0) {
@@ -1596,7 +1639,8 @@ class DungeonSession {
             teammates: Array.from(this.teammates),
             totalTime: Date.now() - this.startedAt,
             floor: this.floor,
-            xp: this.xp
+            xp: this.xp,
+            splits: this.splits
         }, fileName).save();
 
         Utils.chatMsgClickCMD(`&7>> &fSaved Dungeon Session`, `/${BigCommand.cmdName} session view ${fileName}`);

@@ -26,7 +26,8 @@ const data = new PogObject("bigtracker", {
     autoKick: false,
     sayReason: false,
     autoStartSession: true,
-    nameHistory: 0
+    nameHistory: 0,
+    runHistoryLength: 30
 }, "settings.json");
 
 const runData = new PogObject("bigtracker", {
@@ -610,7 +611,7 @@ class BigPlayer {
         }
 
         this.playerData[updateType].push([compMS, compTicks]);
-        if (this.playerData[updateType].length > 30) {
+        if (this.playerData[updateType].length > (data?.runHistoryLength || 30)) {
             this.playerData[updateType].shift();
         }
 
@@ -1059,6 +1060,17 @@ class BigCommand {
         ChatLib.chat("&7>> &fviewfile &busername &7(prints the players entire file in your chat, no reason to ever use this probably)");
     }
 
+    static runHistoryLength(args) {
+        if (!args?.[1] || isNaN(parseInt(args[1]))) {
+            ChatLib.chat(`/${BigCommand.cmdName} runhistorylength num`);
+            return;
+        }
+
+        data.runHistoryLength = parseInt(args[1]);
+        ChatLib.chat(`&7>> &fSet run history length to ${data.runHistoryLength} &7(Default: 30)`);
+        data.save();
+    }
+
     static session(args) {
         if (!args?.[1]) {
             if (BigCommand.dungeonSession != null) {
@@ -1149,50 +1161,10 @@ class BigCommand {
                     return;
                 }
 
-                days = days;
-                BigCommand.viewSessionsDuringTime(days);
+                DungeonSession.viewSessionsDuringTime(days);
                 break;
         }
     }
-
-    static viewSessionsDuringTime(time) {
-        if (!FileLib.exists("./config/ChatTriggers/modules/bigtracker/bigsessions")) {
-            ChatLib.chat("No sessions exist");
-            new File("./config/ChatTriggers/modules/bigtracker/bigsessions").mkdirs();
-            return;
-        }
-
-        ChatLib.chat(`&7>> &3Viewing Sessions from last &f${time}&3 days`);
-
-        time *= 86400000;
-        const now = Date.now();
-
-        let sessionList = new File("./config/ChatTriggers/modules/bigtracker/bigsessions").list().filter(x => now - x.replace(".json", "") < time);
-
-        let combined = {
-            totalSessions: 0,
-            averageTime: []
-        };
-
-        sessionList.forEach(filename => {
-            combined.totalSessions += 1;
-            let tempData = new PogObject("bigtracker/bigsessions", {}, filename);
-            combined.numRuns = (combined?.numRuns || 0) + (tempData?.numRuns || 0);
-            combined.totalTime = (combined?.totalTime || 0) + (tempData?.totalTime || 0);
-            combined.sPlus = (combined?.sPlus || 0) + (tempData?.scores?.filter(x => x >= 300)?.length || 0);
-            combined.sPlusLen = (combined.sPlusLen || 0) + (tempData?.scores?.length || 0);
-            combined.averageTime.push(tempData?.averageTime || 0);
-        });
-
-        ChatLib.chat(`&7>> &9Total Sessions&f: ${combined.totalSessions}`);
-        ChatLib.chat(`&7>> &9Runs&f: ${combined.numRuns}`);
-        ChatLib.chat(`&7>> &9Total Time&f: ${Utils.secondsToFormatted(combined.totalTime / 1000)}`);
-        ChatLib.chat(`&7>> &9S+ Rate&f: ${((combined.sPlus / combined.sPlusLen) * 100).toFixed(1)}%`);
-        if (combined.averageTime.length > 0) {
-            ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(combined.averageTime.reduce((a, b) => a+b) / combined.averageTime.length)}`);
-        }
-    }
-
 
     static oldSessionSearcher(page) {
         if (page == null) {
@@ -1478,7 +1450,7 @@ class Prices {
 
 
 class DungeonSession {
-    static CommandList = ["start", "end", "view"];
+    static CommandList = ["start", "end", "view", "time"];
     
     static tabCompletion(text) {
         if (text == null || text == "") {
@@ -1486,6 +1458,71 @@ class DungeonSession {
         }
         text = text.toLowerCase();
         return DungeonSession.CommandList.filter(i => i.startsWith(text));
+    }
+
+    static viewSessionsDuringTime(time) {
+        if (!FileLib.exists("./config/ChatTriggers/modules/bigtracker/bigsessions")) {
+            ChatLib.chat("No sessions exist");
+            new File("./config/ChatTriggers/modules/bigtracker/bigsessions").mkdirs();
+            return;
+        }
+
+        ChatLib.chat(`&7>> &3Viewing Sessions from last &f${time}&3 days`);
+
+        time *= 86400000;
+        const now = Date.now();
+
+        let sessionList = new File("./config/ChatTriggers/modules/bigtracker/bigsessions").list().filter(x => now - x.replace(".json", "") < time);
+
+        let combined = {
+            totalSessions: 0,
+            averageTime: [],
+            splits: {
+                portal: [],
+                storm: []
+            },
+            numRuns: 0,
+            totalTime: 0,
+            sPlus: 0,
+            sPlusLen: 0
+        };
+
+        sessionList.forEach(filename => {
+            combined.totalSessions += 1;
+            let tempData = new PogObject("bigtracker/bigsessions", {}, filename);
+            combined.numRuns = (combined?.numRuns || 0) + (tempData?.numRuns || 0);
+            combined.totalTime = (combined?.totalTime || 0) + (tempData?.totalTime || 0);
+            combined.sPlus = (combined?.sPlus || 0) + (tempData?.scores?.filter(x => x >= 300)?.length || 0);
+            combined.sPlusLen = (combined.sPlusLen || 0) + (tempData?.scores?.length || 0);
+            combined.averageTime.push(tempData?.averageTime || 0);
+            if (tempData?.splits) {
+                combined.splits.portal.concat(tempData.splits.portal);
+                combined.splits.storm.concat(tempData.splits.storm);
+            }
+        });
+
+        ChatLib.chat(`&7>> &9Total Sessions&f: ${combined.totalSessions}`);
+        ChatLib.chat(`&7>> &9Runs&f: ${combined.numRuns}`);
+        ChatLib.chat(`&7>> &9Total Time&f: ${Utils.secondsToFormatted(combined.totalTime / 1000)}`);
+        ChatLib.chat(`&7>> &9S+ Rate&f: ${((combined.sPlus / combined.sPlusLen) * 100).toFixed(1)}%`);
+        if (combined.averageTime.length > 0) {
+            let tempArr = combined.averageTime.sort( (a, b) => a - b);
+            let avg = tempArr[Math.floor(tempArr.length / 2)];
+
+            ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(avg / 1000)}`);
+        }
+        if (combined.splits.portal.length > 0) {
+            let tempArr = combined.splits.portal.sort( (a, b) => a - b);
+            let avg = tempArr[Math.floor(tempArr.length / 2)];
+
+            ChatLib.chat(`&7>> &9Avg Portal&f: ${Utils.secondsToFormatted(avg / 1000)}`);
+        }
+        if (combined.splits.storm.length > 0) {
+            let tempArr = combined.splits.storm.map(x => x[0]).sort( (a, b) => a - b);
+            let avg = tempArr[Math.floor(tempArr.length / 2)];
+
+            ChatLib.chat(`&7>> &9Avg Storm&f: ${Utils.secondsToFormatted(avg / 1000)}`);   
+        }
     }
 
     static viewFile(filename) {
@@ -1513,6 +1550,22 @@ class DungeonSession {
 
             let avg = tempArr[Math.floor(tempArr.length / 2)];
             ChatLib.chat(`&7>> &9Avg Term Time&f: ${Utils.secondsToFormatted(avg / 1000)}`);
+        }
+
+        if (tempData?.splits) {
+            if (tempData.splits.storm.length != 0) {
+                let tempArr = tempData.splits.storm.sort( (a, b) => a + b);
+                let avg = tempArr[Math.floor(tempArr.length / 2)];
+
+                ChatLib.chat(`&7>> &9Avg Term Time&f: ${Utils.secondsToFormatted(avg / 1000)} &7[${tempArr.length}]`);
+            }
+
+            if (tempData.splits.portal.length != 0) {
+                let tempArr = tempData.splits.portal.sort( (a, b) => a + b);
+                let avg = tempArr[Math.floor(tempArr.length / 2)];
+
+                ChatLib.chat(`&7>> &9Avg Portal Time&f: ${Utils.secondsToFormatted(avg / 1000)} &7[${tempArr.length}]`);
+            }
         }
 
         Utils.chatMsgClickCMD(`&7>> &9Teammates&f: ${tempData.teammates.join(", ")}`, `/${BigCommand.cmdName} session viewteammates ${filename}`);
@@ -1555,43 +1608,7 @@ class DungeonSession {
     }
 
     view() {
-        ChatLib.chat(`&3Current Session`);
-        
-        if (this.floor != null) {
-            ChatLib.chat(`&7>> &9Floor&f: ${this.floor}`);
-        }
-
-        ChatLib.chat(`&7>> &9Runs&f: ${this.numRuns}`);
-        ChatLib.chat(`&7>> &9Time&f: ${Math.trunc((Date.now() - this.startedAt) / 60000)}m`);
-        if (this.scores.length != 0) {
-            ChatLib.chat(`&7>> &9S+ Rate&f: ${((this.scores.filter(x => x >= 300).length / this.scores.length) * 100).toFixed(1)}%`);
-        }
-        ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(this.averageTime)} &7|| &9Fastest &7>> &f${Utils.secondsToFormatted(Math.min(...this.runTimes))}`);
-        
-        if (this.termTimes.length != 0) {
-            let tempArr = this.termTimes.sort((a, b) => a - b);
-            let avg = tempArr[Math.floor(tempArr.length / 2)];
-            ChatLib.chat(`&7>> &9Avg Term Time&f: ${Utils.secondsToFormatted(avg / 1000)} &7[${tempArr.length}]`);
-        }
-
-        if (this.splits.portal.length != 0) {
-            let avg = this.splits.portal.reduce( (a, b) => a + b) / this.splits.portal.length;
-            ChatLib.chat(`&7>> &9Avg Portal Time&f: ${Utils.secondsToFormatted(avg / 1000)} &7[${this.splits.portal.length}]`);
-        }
-
-        if (this.splits.storm.length != 0) {
-            let avg = this.splits.storm.reduce( (a, b) => a + b) / this.splits.storm.length;
-            ChatLib.chat(`&7>> &9Avg Storm Time&f: ${Utils.secondsToFormatted(avg / 1000)} &7[${this.splits.storm.length}]`);
-        }
-
-        for (let xpType of Object.keys(this.xp)) {
-            ChatLib.chat(`&7>> &9${xpType} XP&f: ${Utils.formatNumber(this.xp[xpType])}`);
-        }
-
-        if (Object.keys(this.loot).length != 0) {
-            ChatLib.chat(`&7-------------&3Loot&7-------------`);
-            Utils.printFloorLoot(this.loot, false);
-        }
+        this.saveSession(true);
     }
 
     endRun(time, score, floor) {
@@ -1616,16 +1633,20 @@ class DungeonSession {
         }
     }
 
-    saveSession() {
+    saveSession(temp=false) {
         if (!FileLib.exists("./config/ChatTriggers/modules/bigtracker/bigsessions")) {
             new File("./config/ChatTriggers/modules/bigtracker/bigsessions").mkdirs();
         }
 
-        if (this.numRuns == 0) {
+        if (!temp && this.numRuns == 0) {
             return;
         }
 
-        let fileName = `${Date.now()}.json`;
+        let fileName = temp ? "temp.json" : `${Date.now()}.json`;
+
+        if (temp && FileLib.exists("./config/ChatTriggers/modules/bigtracker/bigsessions/" + fileName)) {
+            FileLib.delete("./config/ChatTriggers/modules/bigtracker/bigsessions/" + fileName);
+        }
 
         new PogObject("bigtracker/bigsessions", {
             startedAt: this.startedAt,
@@ -1643,7 +1664,11 @@ class DungeonSession {
             splits: this.splits
         }, fileName).save();
 
-        Utils.chatMsgClickCMD(`&7>> &fSaved Dungeon Session`, `/${BigCommand.cmdName} session view ${fileName}`);
+        if (!temp) {
+            Utils.chatMsgClickCMD(`&7>> &fSaved Dungeon Session`, `/${BigCommand.cmdName} session view ${fileName}`);
+        } else {
+            DungeonSession.viewFile(fileName);
+        }
     }
 }
 
@@ -1657,6 +1682,9 @@ register("command", (...args) => {
     args[0] = args[0].toLowerCase();
 
     switch (args[0]) {
+        case "runhistorylength":
+            BigCommand.runHistoryLength(args);
+            break;
         case "floorstats":
             BigCommand.floorStats(args);
             break;

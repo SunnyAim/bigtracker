@@ -1,6 +1,19 @@
 import PogObject from "../PogData";
 import request from "../requestV2";
 
+/*
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+[MVP+] eatplastic has obtained Fair Ice Spray Wand!
+
+track s+ rate with a player
+
+stats stats like number of players logged, num sessions etc.
+
+all floors compatability
+
+track storm and portal splits in session
+*/
+
 const S02PacketChat = Java.type("net.minecraft.network.play.server.S02PacketChat");
 const S32PacketConfirmTransaction = Java.type("net.minecraft.network.play.server.S32PacketConfirmTransaction");
 const C0EPacketClickWindow = Java.type("net.minecraft.network.play.client.C0EPacketClickWindow");
@@ -1052,7 +1065,7 @@ class BigCommand {
                     BigCommand.oldSessionSearcher(args?.[3] || 0);
                     return;
                 }
-
+                Utils.chatMsgClickCMD(`&7>> Old Sessions <<`, `/${BigCommand.cmdName} session view old 0`);
                 BigCommand.dungeonSession.view();
                 break;
             case "viewfile":
@@ -1469,7 +1482,10 @@ class DungeonSession {
         ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(tempData.averageTime)}`);
 
         if (tempData?.termTimes && tempData.termTimes.length != 0) {
-            ChatLib.chat(`&7>> &9Avg Term Time&f: ${Utils.secondsToFormatted((tempData.termTimes.reduce((a, b) => a+b) / tempData.termTimes.length) / 1000)}`);
+            let tempArr = tempData.termTimes.sort((a, b) => a - b);
+
+            let avg = tempArr[Math.floor(tempArr.length / 2)];
+            ChatLib.chat(`&7>> &9Avg Term Time&f: ${Utils.secondsToFormatted(avg / 1000)}`);
         }
 
         Utils.chatMsgClickCMD(`&7>> &9Teammates&f: ${tempData.teammates.join(", ")}`, `/${BigCommand.cmdName} session viewteammates ${filename}`);
@@ -1522,7 +1538,7 @@ class DungeonSession {
         ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(this.averageTime)} &7|| &9Fastest &7>> &f${Utils.secondsToFormatted(Math.min(...this.runTimes))}`);
         
         if (this.termTimes.length != 0) {
-            ChatLib.chat(`&7>> &9Avg Term Time&f: ${Utils.secondsToFormatted((this.termTimes.reduce((a, b) => a+b) / this.termTimes.length / 1000))}  &7|| &9Fastest &7>> &f${Utils.secondsToFormatted(Math.min(...this.termTimes))}`);
+            // ChatLib.chat(`&7>> &9Avg Term Time&f: ${Utils.secondsToFormatted(Utils.)}  &7|| &9Fastest &7>> &f${Utils.secondsToFormatted(Math.min(...this.termTimes))}`);
         }
 
         for (let xpType of Object.keys(this.xp)) {

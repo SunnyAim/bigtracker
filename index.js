@@ -280,6 +280,20 @@ class ChatHandler {
             
             getPlayerByName(name, BigPlayer.TaskType.DEATH);
         }
+
+        if (BigCommand.dungeonSession != null) {
+            if (text.match(/\s+\+(.+) (Catacombs|Healer|Archer|Mage|Tank|Berserk) Experience.*/)) {
+                let match = text.match(/\s+\+(.+) (Catacombs|Healer|Archer|Mage|Tank|Berserk) Experience.*/);
+                let xpAmt = match?.[1];
+                let className = match?.[2];
+
+                if (!xpAmt || !className) {
+                    return;
+                }
+
+                BigCommand.dungeonSession.xp?.[className] = (BigCommand.dungeonSession.xp?.[className] || 0) + parseInt(xpAmt.replace(",", ""));
+            }
+        }
     }
 }
 
@@ -1089,7 +1103,7 @@ class BigCommand {
                     return;
                 }
 
-                let days = parseInt(args[2]);
+                let days = parseFloat(args[2]);
                 if (isNaN(days)) {
                     ChatLib.chat("give number");
                     return;
@@ -1126,14 +1140,14 @@ class BigCommand {
             combined.numRuns = (combined?.numRuns || 0) + (tempData?.numRuns || 0);
             combined.totalTime = (combined?.totalTime || 0) + (tempData?.totalTime || 0);
             combined.sPlus = (combined?.sPlus || 0) + (tempData?.scores?.filter(x => x >= 300)?.length || 0);
-            combined.averageTime.push(tempData?.averageTime || 0)
-
+            combined.sPlusLen = (combined.sPlusLen || 0) + (tempData?.scores?.length || 0);
+            combined.averageTime.push(tempData?.averageTime || 0);
         });
 
         ChatLib.chat(`&7>> &9Total Sessions&f: ${combined.totalSessions}`);
         ChatLib.chat(`&7>> &9Runs&f: ${combined.numRuns}`);
         ChatLib.chat(`&7>> &9Total Time&f: ${Utils.secondsToFormatted(combined.totalTime / 1000)}`);
-        ChatLib.chat(`&7>> &9S+ Rate&f: ${((combined.sPlus / combined.numRuns) * 100).toFixed(1)}%`);
+        ChatLib.chat(`&7>> &9S+ Rate&f: ${((combined.sPlus / combined.sPlusLen) * 100).toFixed(1)}%`);
         if (combined.averageTime.length > 0) {
             ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(combined.averageTime.reduce((a, b) => a+b) / combined.averageTime.length)}`);
         }
@@ -1455,7 +1469,7 @@ class DungeonSession {
         ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(tempData.averageTime)}`);
 
         if (tempData?.termTimes && tempData.termTimes.length != 0) {
-            ChatLib.chat(`&7>> &9Avg Term Time&f: ${Utils.secondsToFormatted(tempData.termTimes.reduce((a, b) => a+b) / tempData.termTimes.length)}`);
+            ChatLib.chat(`&7>> &9Avg Term Time&f: ${Utils.secondsToFormatted((tempData.termTimes.reduce((a, b) => a+b) / tempData.termTimes.length) / 1000)}`);
         }
 
         Utils.chatMsgClickCMD(`&7>> &9Teammates&f: ${tempData.teammates.join(", ")}`, `/${BigCommand.cmdName} session viewteammates ${filename}`);
@@ -1490,6 +1504,7 @@ class DungeonSession {
         this.startedAt = Date.now();
         this.lastRunTimestamp = Date.now();
         this.floor = null;
+        this.xp = {};
     }
 
     view() {
@@ -1504,10 +1519,14 @@ class DungeonSession {
         if (this.scores.length != 0) {
             ChatLib.chat(`&7>> &9S+ Rate&f: ${((this.scores.filter(x => x >= 300).length / this.scores.length) * 100).toFixed(1)}%`);
         }
-        ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(this.averageTime)}`);
+        ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(this.averageTime)} &7|| &9Fastest &7>> &f${Utils.secondsToFormatted(Math.min(...this.runTimes))}`);
         
         if (this.termTimes.length != 0) {
-            ChatLib.chat(`&7>> &9Avg Term Time&f: ${Utils.secondsToFormatted(this.termTimes.reduce((a, b) => a+b) / this.termTimes.length)}`);
+            ChatLib.chat(`&7>> &9Avg Term Time&f: ${Utils.secondsToFormatted((this.termTimes.reduce((a, b) => a+b) / this.termTimes.length / 1000))}  &7|| &9Fastest &7>> &f${Utils.secondsToFormatted(Math.min(...this.termTimes))}`);
+        }
+
+        for (let xpType of Object.keys(this.xp)) {
+            ChatLib.chat(`&7>> &9${xpType} XP&f: ${this.xp[xpType]}`);
         }
 
         if (Object.keys(this.loot).length != 0) {
@@ -1560,7 +1579,8 @@ class DungeonSession {
             scores: this.scores,
             teammates: Array.from(this.teammates),
             totalTime: Date.now() - this.startedAt,
-            floor: this.floor
+            floor: this.floor,
+            xp: this.xp
         }, fileName).save();
 
         Utils.chatMsgClickCMD(`&7>> &fSaved Dungeon Session`, `/${BigCommand.cmdName} session view ${fileName}`);

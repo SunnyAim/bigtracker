@@ -2,6 +2,7 @@ import PogObject from "../PogData";
 import request from "../requestV2";
 
 /*
+to do
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 [MVP+] eatplastic has obtained Fair Ice Spray Wand!
 
@@ -10,16 +11,6 @@ track s+ rate with a player
 stats stats like number of players logged, num sessions etc.
 
 all floors compatability
-
-br
-camp
-portal
-maxor
-storm
-terms
-goldor
-necron
-p5
 */
 
 const S02PacketChat = Java.type("net.minecraft.network.play.server.S02PacketChat");
@@ -305,7 +296,7 @@ class ChatHandler {
             }
             
             if (BigCommand.dungeonSession != null) {
-                BigCommand.dungeonSession.endRun(time, score, ChatHandler.dungeon.floor, ChatHandler.dungeon.splits);
+                BigCommand.dungeonSession.endRun(time, score, ChatHandler.dungeon.floor, DungeonRun.finalizeSplits(ChatHandler.dungeon.splits));
             }
 
             ChatHandler.dungeon.runDone = true;
@@ -842,6 +833,16 @@ class DungeonRun {
                 this.partyMembers = tempPartyMembers;
             }
         } catch (e) {console.log(e)}
+    }
+
+    static finalizeSplits(splits) {
+        let finalSplits = {};
+
+        for (let splitType in Object.keys(splits["END"])) {
+            finalSplits[splitType] = [splits["END"][splitType][0] - splits["START"][splitType][0], splits["END"][splitType][1] - splits["START"][splitType][1]];
+        }
+
+        return finalSplits;
     }
 }
 
@@ -1435,7 +1436,6 @@ class Prices {
                 };
 
                 for (let itemName of Object.keys(tempBzPrices.products)) {
-                    console.log(itemName)
                     realBzPrices[itemName] = tempBzPrices.products[itemName].quick_status.sellPrice;
                 }
 
@@ -1533,14 +1533,19 @@ class DungeonSession {
         if (Object.keys(combined.splits).length != 0) {
             ChatLib.chat(`&7------------&3Splits&7------------`);
             for (let split of Object.keys(combined.splits)) {
-                let tempArr = combined.splits[split].map(x => x[0]).sort( (a, b) => a - b);
-                let avg = tempArr[Math.floor(tempArr.length / 2)];
-                let fastest = tempArr[0];
-                let slowest = tempArr[tempArr.length - 1];
-    
-                avg = Utils.secondsToFormatted(avg / 1000);
-                fastest = Utils.secondsToFormatted(avg / 1000);
-                slowest = Utils.secondsToFormatted(avg / 1000);
+                let avg = [];
+                let fastest = [];
+                let slowest = [];
+                for (let i = 0; i < combined.splits[split].length; i++) {
+                    let tempArr = combined.splits[split].map(x => x[i]).sort( (a, b) => a - b);
+                    avg.push(tempArr[Math.floor(tempArr.length / 2)]);
+                    fastest.push(tempArr[0]);
+                    slowest.push(tempArr[tempArr.length - 1]);
+                }
+
+                avg = Utils.formatMSandTick(avg);
+                fastest = Utils.formatMSandTick(avg);
+                slowest = Utils.formatMSandTick(avg);
 
                 ChatLib.chat(` $7> &6${split}&f: avg: ${avg} fastest: ${fastest} slowest: ${slowest} &7[${tempArr.length}]`);            
             }
@@ -1583,13 +1588,19 @@ class DungeonSession {
 
             ChatLib.chat(`&7------------&3Splits&7------------`);
             for (let split of Object.keys(combinedSplits)) {
-                let tempArr = combinedSplits[split].map(x => x[0]).sort( (a, b) => a - b);
-                let avg = tempArr[Math.floor(tempArr.length / 2)];
-                let fastest = tempArr[0];
-                let slowest = tempArr[tempArr.length - 1];
-                avg = Utils.secondsToFormatted(avg / 1000);
-                fastest = Utils.secondsToFormatted(fastest / 1000);
-                slowest = Utils.secondsToFormatted(slowest / 1000);
+                let avg = [];
+                let fastest = [];
+                let slowest = [];
+                for (let i = 0; i < combinedSplits[split].length; i++) {
+                    let tempArr = combinedSplits[split].map(x => x[i]).sort( (a, b) => a - b);
+                    avg.push(tempArr[Math.floor(tempArr.length / 2)]);
+                    fastest.push(tempArr[0]);
+                    slowest.push(tempArr[tempArr.length - 1]);
+                }
+
+                avg = Utils.formatMSandTick(avg);
+                fastest = Utils.formatMSandTick(avg);
+                slowest = Utils.formatMSandTick(avg);
 
                 ChatLib.chat(` $7> &6${split}&f: avg: ${avg} fastest: ${fastest} slowest: ${slowest} &7[${tempArr.length}]`);
             }

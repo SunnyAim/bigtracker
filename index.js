@@ -215,11 +215,11 @@ class ChatHandler {
             }
 
             if (!ChatHandler.dungeon.ssDone && ChatHandler.dungeon.partyMembers[name] == "Healer") {
-                for (let typeKey of Object.keys(ChatHandler.dungeon.splits)) {
-                    for (let tempKey of Object.keys(ChatHandler.dungeon.splits[typeKey])) {
-                        console.log(`${typeKey} ${tempKey} ${ChatHandler.dungeon.splits[typeKey][tempKey]}`);
-                    }
-                }
+                // for (let typeKey of Object.keys(ChatHandler.dungeon.splits)) {
+                //     for (let tempKey of Object.keys(ChatHandler.dungeon.splits[typeKey])) {
+                //         console.log(`${typeKey} ${tempKey} ${ChatHandler.dungeon.splits[typeKey][tempKey]}`);
+                //     }
+                // }
                 let compMS = Date.now() - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.TERMS][0];
                 let compTicks = tick.getTotalTicks() - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.TERMS][1];
                 
@@ -853,7 +853,7 @@ class DungeonRun {
     static finalizeSplits(splits) {
         let finalSplits = {};
 
-        for (let splitType in Object.keys(splits["END"])) {
+        for (let splitType of Object.keys(splits["END"])) {
             try {
                 finalSplits[splitType] = [splits["END"][splitType][0] - splits["START"][splitType][0], splits["END"][splitType][1] - splits["START"][splitType][1]];
             } catch (e) { 

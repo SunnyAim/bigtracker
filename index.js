@@ -10,6 +10,16 @@ track s+ rate with a player
 stats stats like number of players logged, num sessions etc.
 
 all floors compatability
+
+br
+camp
+portal
+maxor
+storm
+terms
+goldor
+necron
+p5
 */
 
 const S02PacketChat = Java.type("net.minecraft.network.play.server.S02PacketChat");
@@ -27,7 +37,8 @@ const data = new PogObject("bigtracker", {
     sayReason: false,
     autoStartSession: true,
     nameHistory: 0,
-    runHistoryLength: 30
+    runHistoryLength: 30,
+    debugMsgs: false
 }, "settings.json");
 
 const runData = new PogObject("bigtracker", {
@@ -154,29 +165,45 @@ class ChatHandler {
 
         if (text.startsWith("[BOSS] The Watcher:")) {
             if (!ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.CAMP]) {
+                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.BR, DungeonRun.SplitType.END);
                 ChatHandler.dungeon.doSplit(DungeonRun.SplitType.CAMP, DungeonRun.SplitType.START);
-                return;
-            }
-
-            if (text == "[BOSS] The Watcher: You have proven yourself. You may pass.") {
+            } else if (text == "[BOSS] The Watcher: You have proven yourself. You may pass.") {
                 ChatHandler.dungeon.doSplit(DungeonRun.SplitType.CAMP, DungeonRun.SplitType.END);
-                return;
+                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.PORTAL, DungeonRun.SplitType.START);
             }
-        }
-
-        if (text == "[BOSS] Maxor: WELL! WELL! WELL! LOOK WHO'S HERE!") {
-            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.PORTAL, DungeonRun.SplitType.END);
             return;
         }
 
-        if (text == "[BOSS] Storm: Pathetic Maxor, just like expected.") {
-            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.STORM, DungeonRun.SplitType.START);
-            return;
-        }
-
-        if (text == "[BOSS] Goldor: Who dares trespass into my domain?") {
-            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.TERMS, DungeonRun.SplitType.START);
-            return;
+        switch (text) {
+            case "[BOSS] Maxor: WELL! WELL! WELL! LOOK WHO'S HERE!":
+                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.PORTAL, DungeonRun.SplitType.END);
+                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.MAXOR, DungeonRun.SplitType.START);
+                return;
+            case "[BOSS] Storm: Pathetic Maxor, just like expected.":
+                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.MAXOR, DungeonRun.SplitType.END);
+                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.STORM, DungeonRun.SplitType.START);
+                return;
+            case "[BOSS] Goldor: Who dares trespass into my domain?":
+                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.STORM, DungeonRun.SplitType.END);
+                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.TERMS, DungeonRun.SplitType.START);
+                return;
+            case "The Core entrance is opening!":
+                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.TERMS, DungeonRun.SplitType.END);
+                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.GOLDOR, DungeonRun.SplitType.START);
+                return;
+            case "[BOSS] Necron: You went further than any human before, congratulations.":
+                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.GOLDOR, DungeonRun.SplitType.END);
+                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.NECRON, DungeonRun.SplitType.START);
+                return;
+            case "[BOSS] Necron: All this, for nothing...":
+                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.NECRON, DungeonRun.SplitType.END);
+                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.P5, DungeonRun.SplitType.START);
+                return;
+            case "[BOSS] Wither King: Incredible. You did what I couldn't do myself.":
+                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.P5, DungeonRun.SplitType.END);
+                return;
+            default:
+                break;
         }
 
         if (text.match(/([a-zA-Z0-9_]{3,16}) completed a device!.+/)) {
@@ -216,11 +243,6 @@ class ChatHandler {
                     }
                 }
             }
-        }
-
-        if (text == "The Core entrance is opening!") {
-            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.TERMS, DungeonRun.SplitType.END);
-            return;
         }
 
         if (text.match(/\s+☠ Defeated (.+) in (\d+)m\s+(\d+)s/)) {
@@ -283,7 +305,7 @@ class ChatHandler {
             }
             
             if (BigCommand.dungeonSession != null) {
-                BigCommand.dungeonSession.endRun(time, score, ChatHandler.dungeon.floor);
+                BigCommand.dungeonSession.endRun(time, score, ChatHandler.dungeon.floor, ChatHandler.dungeon.splits);
             }
 
             ChatHandler.dungeon.runDone = true;
@@ -690,9 +712,13 @@ class DungeonRun {
         END: "END",
         RUN: "RUN",
         CAMP: "CAMP",
-        TERMS: "TERMS",
         PORTAL: "PORTAL",
-        STORM: "STORM"
+        MAXOR: "MAXOR",
+        STORM: "STORM",
+        TERMS: "TERMS",
+        GOLDOR: "GOLDOR",
+        NECRON: "NECRON",
+        P5: "P5"
     });
 
     constructor() {
@@ -708,6 +734,7 @@ class DungeonRun {
         this.numPartyMembers = null;
         this.runDone = false;
         this.doSplit(DungeonRun.SplitType.RUN, DungeonRun.SplitType.START);
+        this.doSplit(DungeonRun.SplitType.BR, DungeonRun.SplitType.START);
         this.floor = Utils.findScoreboardFloor();
     }
 
@@ -727,14 +754,6 @@ class DungeonRun {
                             let runStartedAt = this.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.RUN];
                             let brTime = [brDoneAt[0] - runStartedAt[0], brDoneAt[1] - runStartedAt[1]];
                             getPlayerByName(name, BigPlayer.TaskType.UPDATE, [BigPlayer.TaskType.BR, brTime[0], brTime[1]]);
-                        }
-                        break;
-                    case DungeonRun.SplitType.TERMS:
-                        if (BigCommand.dungeonSession != null) {
-                            let stormStart = this.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.STORM];
-                            let stormEnd = this.splits[or][type];
-                            let stormTime = [stormEnd[0] - stormStart[0], stormEnd[1] - stormStart[1]];
-                            BigCommand.dungeonSession.splits.storm.push(stormTime);
                         }
                         break;
                 }
@@ -757,19 +776,6 @@ class DungeonRun {
                         let termTime = [termsEndedAt[0] - termsStartedAt[0], termsEndedAt[1] - termsStartedAt[1]];
                         for (let name of Object.keys(this.partyMembers)) {
                             getPlayerByName(name, BigPlayer.TaskType.UPDATE, [DungeonRun.SplitType.TERMS, termTime[0], termTime[1]]);
-                        }
-
-                        if (BigCommand.dungeonSession != null) {
-                            BigCommand.dungeonSession.termTimes.push(termTime[0]);
-                        }
-                        break;
-                    case DungeonRun.SplitType.PORTAL:
-                        let portalStartedAt = this.splits[DungeonRun.SplitType.END][DungeonRun.SplitType.CAMP];
-                        let portalEndedAt = this.splits[or][type];
-                        let portalTime = [portalEndedAt[0] - portalStartedAt[0], portalEndedAt[1] - portalStartedAt[1]];
-                        
-                        if (BigCommand.dungeonSession != null) {
-                            BigCommand.dungeonSession.splits.portal.push(portalTime[0]);
                         }
                         break;
                 }
@@ -1180,7 +1186,7 @@ class BigCommand {
 
         const pageLength = 6;
 
-        let sessionList = new File("./config/ChatTriggers/modules/bigtracker/bigsessions").list().reverse();
+        let sessionList = new File("./config/ChatTriggers/modules/bigtracker/bigsessions").list().filter(x => x.length == 18).reverse();
         let totalPages = Math.ceil(sessionList.length / pageLength);
 
         ChatLib.chat(`&7-------------&3Page ${page + 1}&7-------------`);
@@ -1472,15 +1478,16 @@ class DungeonSession {
         time *= 86400000;
         const now = Date.now();
 
-        let sessionList = new File("./config/ChatTriggers/modules/bigtracker/bigsessions").list().filter(x => now - x.replace(".json", "") < time);
+        if (BigCommand.dungeonSession != null) {
+            BigCommand.dungeonSession.saveSession(true);
+        }
+
+        let sessionList = new File("./config/ChatTriggers/modules/bigtracker/bigsessions").list().filter(x => now - x.replace(".json", "") < time || x == "temp.json");
 
         let combined = {
             totalSessions: 0,
             averageTime: [],
-            splits: {
-                portal: [],
-                storm: []
-            },
+            splits: {},
             numRuns: 0,
             totalTime: 0,
             sPlus: 0,
@@ -1494,10 +1501,20 @@ class DungeonSession {
             combined.totalTime = (combined?.totalTime || 0) + (tempData?.totalTime || 0);
             combined.sPlus = (combined?.sPlus || 0) + (tempData?.scores?.filter(x => x >= 300)?.length || 0);
             combined.sPlusLen = (combined.sPlusLen || 0) + (tempData?.scores?.length || 0);
-            combined.averageTime.push(tempData?.averageTime || 0);
-            if (tempData?.splits) {
-                combined.splits.portal.concat(tempData.splits.portal);
-                combined.splits.storm.concat(tempData.splits.storm);
+            if (tempData?.averageTime) {
+                combined.averageTime.push(tempData?.averageTime);
+            }
+            
+            if (tempData?.v >= 0.2 && tempData?.splits) {
+                for (let i = 0; i < tempData.splits.length; i++) {
+                    let splitKeys = Object.keys(tempData.splits[i]);
+                    for (let j = 0; j < splitKeys.length; j++) {
+                        if (!combined.splits[splitKeys[j]]) {
+                            combined.splits[splitKeys[j]] = [];
+                        }
+                        combined.splits[splitKeys[j]].push(tempData.splits[i][splitKeys[j]]);
+                    }
+                }
             }
         });
 
@@ -1511,17 +1528,22 @@ class DungeonSession {
 
             ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(avg / 1000)}`);
         }
-        if (combined.splits.portal.length > 0) {
-            let tempArr = combined.splits.portal.sort( (a, b) => a - b);
-            let avg = tempArr[Math.floor(tempArr.length / 2)];
 
-            ChatLib.chat(`&7>> &9Avg Portal&f: ${Utils.secondsToFormatted(avg / 1000)}`);
-        }
-        if (combined.splits.storm.length > 0) {
-            let tempArr = combined.splits.storm.map(x => x[0]).sort( (a, b) => a - b);
-            let avg = tempArr[Math.floor(tempArr.length / 2)];
 
-            ChatLib.chat(`&7>> &9Avg Storm&f: ${Utils.secondsToFormatted(avg / 1000)}`);   
+        if (Object.keys(combined.splits).length != 0) {
+            ChatLib.chat(`&7------------&3Splits&7------------`);
+            for (let split of Object.keys(combined.splits)) {
+                let tempArr = combined.splits[split].map(x => x[0]).sort( (a, b) => a - b);
+                let avg = tempArr[Math.floor(tempArr.length / 2)];
+                let fastest = tempArr[0];
+                let slowest = tempArr[tempArr.length - 1];
+    
+                avg = Utils.secondsToFormatted(avg / 1000);
+                fastest = Utils.secondsToFormatted(avg / 1000);
+                slowest = Utils.secondsToFormatted(avg / 1000);
+
+                ChatLib.chat(` $7> &6${split}&f: avg: ${avg} fastest: ${fastest} slowest: ${slowest} &7[${tempArr.length}]`);            
+            }
         }
     }
 
@@ -1544,31 +1566,35 @@ class DungeonSession {
         }
         
         ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(tempData.averageTime)}`);
-
-        if (tempData?.termTimes && tempData.termTimes.length != 0) {
-            let tempArr = tempData.termTimes.sort((a, b) => a - b);
-
-            let avg = tempArr[Math.floor(tempArr.length / 2)];
-            ChatLib.chat(`&7>> &9Avg Term Time&f: ${Utils.secondsToFormatted(avg / 1000)}`);
-        }
-
-        if (tempData?.splits) {
-            if (tempData.splits.storm.length != 0) {
-                let tempArr = tempData.splits.storm.map(x => x[0]).sort( (a, b) => a - b);
-                let avg = tempArr[Math.floor(tempArr.length / 2)];
-
-                ChatLib.chat(`&7>> &9Avg Storm Time&f: ${Utils.secondsToFormatted(avg / 1000)} &7[${tempArr.length}]`);
-            }
-
-            if (tempData.splits.portal.length != 0) {
-                let tempArr = tempData.splits.portal.sort( (a, b) => a - b);
-                let avg = tempArr[Math.floor(tempArr.length / 2)];
-
-                ChatLib.chat(`&7>> &9Avg Portal Time&f: ${Utils.secondsToFormatted(avg / 1000)} &7[${tempArr.length}]`);
-            }
-        }
-
         Utils.chatMsgClickCMD(`&7>> &9Teammates&f: ${tempData.teammates.join(", ")}`, `/${BigCommand.cmdName} session viewteammates ${filename}`);
+
+        if (tempData?.splits && tempData?.v >= 0.2) {
+            let combinedSplits = {};
+
+            for (let i = 0; i < tempData.splits.length; i++) {
+                let splitKeys = Object.keys(tempData.splits[i]);
+                for (let j = 0; j < splitKeys.length; j++) {
+                    if (!combinedSplits[splitKeys[j]]) {
+                        combinedSplits[splitKeys[j]] = [];
+                    }
+                    combinedSplits[splitKeys[j]].push(tempData.splits[i][splitKeys[j]]);
+                }
+            }
+
+            ChatLib.chat(`&7------------&3Splits&7------------`);
+            for (let split of Object.keys(combinedSplits)) {
+                let tempArr = combinedSplits[split].map(x => x[0]).sort( (a, b) => a - b);
+                let avg = tempArr[Math.floor(tempArr.length / 2)];
+                let fastest = tempArr[0];
+                let slowest = tempArr[tempArr.length - 1];
+                avg = Utils.secondsToFormatted(avg / 1000);
+                fastest = Utils.secondsToFormatted(fastest / 1000);
+                slowest = Utils.secondsToFormatted(slowest / 1000);
+
+                ChatLib.chat(` $7> &6${split}&f: avg: ${avg} fastest: ${fastest} slowest: ${slowest} &7[${tempArr.length}]`);
+            }
+        }
+        
         if (Object.keys(tempData.loot).length != 0) {
             ChatLib.chat(`&7-------------&3Loot&7-------------`);
             Utils.printFloorLoot(tempData.loot, false);
@@ -1594,24 +1620,21 @@ class DungeonSession {
         this.averageScore = 0;
         this.averageTime = 0;
         this.runTimes = [];
-        this.termTimes = [];
         this.scores = [];
         this.teammates = new Set();
         this.startedAt = Date.now();
         this.lastRunTimestamp = Date.now();
         this.floor = null;
         this.xp = {};
-        this.splits = {
-            portal: [],
-            storm: []
-        };
+        this.splits = [];
+        this.v = 0.2;
     }
 
     view() {
         this.saveSession(true);
     }
 
-    endRun(time, score, floor) {
+    endRun(time, score, floor, splits) {
         this.averageTime = Utils.calcMovingAvg(this.averageTime, this.numRuns, time);
         this.averageScore = Utils.calcMovingAvg(this.averageScore, this.numRuns, score);
         
@@ -1619,6 +1642,7 @@ class DungeonSession {
             this.teammates.add(name);
         }
 
+        this.splits.push(splits);
         this.floor = floor;
         this.lastRunTimestamp = Date.now();
         this.runTimes.push(time);
@@ -1655,13 +1679,13 @@ class DungeonSession {
             averageScore: this.averageScore,
             averageTime: this.averageTime,
             runTimes: this.runTimes,
-            termTimes: this.termTimes,
             scores: this.scores,
             teammates: Array.from(this.teammates),
             totalTime: Date.now() - this.startedAt,
             floor: this.floor,
             xp: this.xp,
-            splits: this.splits
+            splits: this.splits,
+            v: this.v
         }, fileName).save();
 
         if (!temp) {
@@ -1682,6 +1706,14 @@ register("command", (...args) => {
     args[0] = args[0].toLowerCase();
 
     switch (args[0]) {
+        case "help":
+            BigCommand.help();
+            break;
+        case "debug":
+            data.debugMsgs = !data?.debugMsgs;
+            Utils.chatMsgClickCMD(`&7>> &fdebugmsgs ${data.debugMsgs ? "&aenabled" : "&cdisabled"}`, `/${BigCommand.cmdName} debug`);
+            data.save();
+            break;
         case "runhistorylength":
             BigCommand.runHistoryLength(args);
             break;

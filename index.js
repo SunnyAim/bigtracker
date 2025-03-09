@@ -165,36 +165,45 @@ class ChatHandler {
             return;
         }
 
-        switch (text) {
-            case "[BOSS] Maxor: WELL! WELL! WELL! LOOK WHO'S HERE!":
-                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.PORTAL, DungeonRun.SplitType.END);
-                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.MAXOR, DungeonRun.SplitType.START);
-                return;
-            case "[BOSS] Storm: Pathetic Maxor, just like expected.":
-                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.MAXOR, DungeonRun.SplitType.END);
-                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.STORM, DungeonRun.SplitType.START);
-                return;
-            case "[BOSS] Goldor: Who dares trespass into my domain?":
-                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.STORM, DungeonRun.SplitType.END);
-                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.TERMS, DungeonRun.SplitType.START);
-                return;
-            case "The Core entrance is opening!":
-                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.TERMS, DungeonRun.SplitType.END);
-                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.GOLDOR, DungeonRun.SplitType.START);
-                return;
-            case "[BOSS] Necron: You went further than any human before, congratulations.":
-                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.GOLDOR, DungeonRun.SplitType.END);
-                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.NECRON, DungeonRun.SplitType.START);
-                return;
-            case "[BOSS] Necron: All this, for nothing...":
-                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.NECRON, DungeonRun.SplitType.END);
-                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.P5, DungeonRun.SplitType.START);
-                return;
-            case "[BOSS] Wither King: Incredible. You did what I couldn't do myself.":
-                ChatHandler.dungeon.doSplit(DungeonRun.SplitType.P5, DungeonRun.SplitType.END);
-                return;
-            default:
-                break;
+        if (text == "[BOSS] Maxor: WELL! WELL! WELL! LOOK WHO'S HERE!") {
+            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.PORTAL, DungeonRun.SplitType.END);
+            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.MAXOR, DungeonRun.SplitType.START);
+            return;
+        }
+
+        if (text == "[BOSS] Storm: Pathetic Maxor, just like expected.") {
+            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.MAXOR, DungeonRun.SplitType.END);
+            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.STORM, DungeonRun.SplitType.START);
+            return;
+        }
+
+        if (text == "[BOSS] Goldor: Who dares trespass into my domain?") {
+            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.STORM, DungeonRun.SplitType.END);
+            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.TERMS, DungeonRun.SplitType.START);
+            return;
+        }
+
+        if (text == "The Core entrance is opening!") {
+            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.TERMS, DungeonRun.SplitType.END);
+            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.GOLDOR, DungeonRun.SplitType.START);
+            return;
+        }
+
+        if (text == "[BOSS] Necron: You went further than any human before, congratulations.") {
+            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.GOLDOR, DungeonRun.SplitType.END);
+            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.NECRON, DungeonRun.SplitType.START);
+            return;
+        }
+
+        if (text == "[BOSS] Necron: All this, for nothing...") {
+            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.NECRON, DungeonRun.SplitType.END);
+            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.P5, DungeonRun.SplitType.START);
+            return;
+        }
+
+        if (text == "[BOSS] Wither King: Incredible. You did what I couldn't do myself.") {
+            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.P5, DungeonRun.SplitType.END);
+            return;
         }
 
         if (text.match(/([a-zA-Z0-9_]{3,16}) completed a device!.+/)) {
@@ -206,6 +215,11 @@ class ChatHandler {
             }
 
             if (!ChatHandler.dungeon.ssDone && ChatHandler.dungeon.partyMembers[name] == "Healer") {
+                for (let typeKey of Object.keys(ChatHandler.dungeon.splits)) {
+                    for (let tempKey of Object.keys(ChatHandler.dungeon.splits[typeKey])) {
+                        console.log(`${typeKey} ${tempKey} ${ChatHandler.dungeon.splits[typeKey][tempKey]}`);
+                    }
+                }
                 let compMS = Date.now() - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.TERMS][0];
                 let compTicks = tick.getTotalTicks() - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.TERMS][1];
                 
@@ -702,6 +716,7 @@ class DungeonRun {
         START: "START",
         END: "END",
         RUN: "RUN",
+        BR: "BR",
         CAMP: "CAMP",
         PORTAL: "PORTAL",
         MAXOR: "MAXOR",
@@ -839,7 +854,14 @@ class DungeonRun {
         let finalSplits = {};
 
         for (let splitType in Object.keys(splits["END"])) {
-            finalSplits[splitType] = [splits["END"][splitType][0] - splits["START"][splitType][0], splits["END"][splitType][1] - splits["START"][splitType][1]];
+            try {
+                finalSplits[splitType] = [splits["END"][splitType][0] - splits["START"][splitType][0], splits["END"][splitType][1] - splits["START"][splitType][1]];
+            } catch (e) { 
+                console.log(splitType);
+                console.log(splits?.["END"]?.[splitType]);
+                console.log(splits?.["START"]?.[splitType]);
+                console.log(e);
+            }
         }
 
         return finalSplits;
@@ -1448,7 +1470,7 @@ class Prices {
         request(Prices.ahURL)
             .then(function(res) {
                 Prices.priceData.ahPrices = JSON.parse(res);
-                Prices.priceData.AHLASTUPDATED = Date.now();
+                Prices.priceData.ahLastUpdated = Date.now();
                 Prices.priceData.save();
             });
     }

@@ -1665,7 +1665,7 @@ class DungeonSession {
         this.lastRunTimestamp = Date.now();
         this.floor = null;
         this.xp = {};
-        this.splits = [];
+        this.splits = {};
         this.v = 0.2;
     }
 
@@ -1681,13 +1681,16 @@ class DungeonSession {
             this.teammates.add(name);
         }
 
-        // this.splits.push(splits);
         for (let splitType of Object.keys(splits)) {
             if (!this.splits?.[splitType]) {
                 this.splits[splitType] = [];
             }
             this.splits[splitType].push(splits[splitType]);
+            if (data?.debugMsgs) {
+                console.log(` >> ${splitType} : ${this.splits[splitType].toString()}`);
+            }
         }
+
         this.floor = floor;
         this.lastRunTimestamp = Date.now();
         this.runTimes.push(time);

@@ -1601,37 +1601,32 @@ class DungeonSession {
         ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(tempData.averageTime)}`);
         Utils.chatMsgClickCMD(`&7>> &9Teammates&f: ${tempData.teammates.join(", ")}`, `/${BigCommand.cmdName} session viewteammates ${filename}`);
 
-        if (tempData?.splits && tempData?.v >= 0.2) {
-            let combinedSplits = {};
+        // if (tempData?.splits && tempData?.v >= 0.2) {
+        //     let combinedSplits = {};
 
-            for (let i = 0; i < tempData.splits.length; i++) {
-                let splitKeys = Object.keys(tempData.splits[i]);
-                for (let j = 0; j < splitKeys.length; j++) {
-                    if (!combinedSplits[splitKeys[j]]) {
-                        combinedSplits[splitKeys[j]] = [];
-                    }
-                    combinedSplits[splitKeys[j]].push(tempData.splits[i][splitKeys[j]]);
-                }
-            }
+        //     for (let i = 0; i < tempData.splits.length; i++) {
+        //         let splitKeys = Object.keys(tempData.splits[i]);
+        //         for (let j = 0; j < splitKeys.length; j++) {
+        //             if (!combinedSplits[splitKeys[j]]) {
+        //                 combinedSplits[splitKeys[j]] = [];
+        //             }
+        //             combinedSplits[splitKeys[j]].push(tempData.splits[i][splitKeys[j]]);
+        //         }
+        //     }
 
             ChatLib.chat(`&7------------&3Splits&7------------`);
-            for (let split of Object.keys(combinedSplits)) {
-                let avg = [];
-                let fastest = [];
-                let slowest = [];
-                for (let i = 0; i < combinedSplits[split].length; i++) {
-                    let tempArr = combinedSplits[split].map(x => x[i]).sort( (a, b) => a - b);
-                    avg.push(tempArr[Math.floor(tempArr.length / 2)]);
-                    fastest.push(tempArr[0]);
-                    slowest.push(tempArr[tempArr.length - 1]);
-                }
+        for (let splitName of Object.keys(tempData.splits)) {
+            let split = tempData.splits[splitName];
+            let tempSplitCopy = split.sort( (a, b) => a[0] - b[0]);
+            let avg = tempSplitCopy[Math.floor(tempSplitCopy.length / 2)];
+            let fastest = tempSplitCopy[0];
+            let slowest = tempSplitCopy[tempSplitCopy.length - 1];
 
-                avg = Utils.formatMSandTick(avg);
-                fastest = Utils.formatMSandTick(avg);
-                slowest = Utils.formatMSandTick(avg);
-
-                ChatLib.chat(` $7> &6${split}&f: avg: ${avg} fastest: ${fastest} slowest: ${slowest} &7[${combinedSplits[split].length}]`);
-            }
+            avg = Utils.formatMSandTick(avg);
+            fastest = Utils.formatMSandTick(fastest);
+            slowest = Utils.formatMSandTick(slowest);
+            
+            ChatLib.chat(` &7> &6${splitName}&f: avg: ${avg} fastest: ${fastest} slowest: ${slowest} &7[${split.length}]`);
         }
         
         if (Object.keys(tempData.loot).length != 0) {

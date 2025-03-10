@@ -639,7 +639,7 @@ class BigPlayer {
         }
 
         this.playerData[updateType].push([compMS, compTicks]);
-        if (this.playerData[updateType].length > (data?.runHistoryLength || 30)) {
+        while (this.playerData[updateType].length > (data?.runHistoryLength || 30)) {
             this.playerData[updateType].shift();
         }
 
@@ -950,7 +950,11 @@ class Utils {
         if (seconds > 60) {
             timeStr += `${Math.trunc(seconds / 60)}m `
         }
-        timeStr += `${(seconds % 60).toFixed(howManyDecimals)}s`;
+        if (howManyDecimals != 0) {
+            timeStr += `${(seconds % 60).toFixed(howManyDecimals)}s`;
+        } else {
+            timeStr += `${Math.trunc(seconds % 60)}s`;
+        }
         if (ticks > 60) {
             tickStr += `${Math.trunc(ticks / 60)}m `
         }
@@ -1024,10 +1028,13 @@ class Utils {
     }
 
     static secondsToFormatted(seconds) {
+        const minutes = Math.trunc((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
+    
         if (seconds < 3600) {
-            return `${Math.trunc(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+            return `${Math.trunc(seconds / 60)}m ${secs}s`;
         } else {
-            return `${Math.trunc(seconds / 3600)}h ${Math.trunc((seconds % 3600) / 60)}m ${Math.round(seconds % 60)}s`;
+            return `${Math.trunc(seconds / 3600)}h ${minutes}m ${secs}s`;
         }
     }
 }
@@ -1602,6 +1609,7 @@ class DungeonSession {
         Utils.chatMsgClickCMD(`&7>> &9Teammates&f: ${tempData.teammates.join(", ")}`, `/${BigCommand.cmdName} session viewteammates ${filename}`);
 
 
+        let longestSplitNameLen = Renderer.getStringWidth(Object.keys(tempData.splits).sort((a, b) => b.length - a.length)[0] + " ");
         
         for (let splitName of Object.keys(tempData.splits)) {
             let split = tempData.splits[splitName];
@@ -1613,8 +1621,15 @@ class DungeonSession {
             avg = Utils.secondsToFormatted(avg);
             fastest = Utils.secondsToFormatted(fastest);
             slowest = Utils.secondsToFormatted(slowest);
-            
-            ChatLib.chat(` &8> &6${splitName}&f: &7AVG: &f${avg} &7BEST: &f${fastest} &7WORST: &f${slowest}`);
+
+            let splitNameStr = splitName + " ";
+            while (Renderer.getStringWidth(splitNameStr) < longestSplitNameLen) {
+                splitNameStr += " ";
+            }
+
+            splitNameStr += "&8> ";
+    
+            ChatLib.chat(` &8> &6${splitNameStr}&b${avg} &8|| &a${fastest} &8|| &c${slowest}`);
         }
         
         if (Object.keys(tempData.loot).length != 0) {

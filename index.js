@@ -947,14 +947,17 @@ class Utils {
 
         let timeStr = "";
         let tickStr = "";
+
         if (seconds > 60) {
             timeStr += `${Math.trunc(seconds / 60)}m `
         }
+
         if (howManyDecimals != 0) {
             timeStr += `${(seconds % 60).toFixed(howManyDecimals)}s`;
         } else {
             timeStr += `${Math.trunc(seconds % 60)}s`;
         }
+        
         if (ticks > 60) {
             tickStr += `${Math.trunc(ticks / 60)}m `
         }
@@ -1560,31 +1563,31 @@ class DungeonSession {
         if (combined.averageTime.length > 0) {
             let tempArr = combined.averageTime.sort( (a, b) => a - b);
             let avg = tempArr[Math.floor(tempArr.length / 2)];
-
-            ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(avg / 1000)}`);
+            console.log(avg)
+            ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(avg)}`);
         }
 
 
-        if (Object.keys(combined.splits).length != 0) {
-            ChatLib.chat(`&7------------&3Splits&7------------`);
-            for (let split of Object.keys(combined.splits)) {
-                let avg = [];
-                let fastest = [];
-                let slowest = [];
-                for (let i = 0; i < combined.splits[split].length; i++) {
-                    let tempArr = combined.splits[split].map(x => x[i]).sort( (a, b) => a - b);
-                    avg.push(tempArr[Math.floor(tempArr.length / 2)]);
-                    fastest.push(tempArr[0]);
-                    slowest.push(tempArr[tempArr.length - 1]);
-                }
+        // if (Object.keys(combined.splits).length != 0) {
+        //     ChatLib.chat(`&7------------&3Splits&7------------`);
+        //     for (let split of Object.keys(combined.splits)) {
+        //         let avg = [];
+        //         let fastest = [];
+        //         let slowest = [];
+        //         for (let i = 0; i < combined.splits[split].length; i++) {
+        //             let tempArr = combined.splits[split].map(x => x[i]).sort( (a, b) => a - b);
+        //             avg.push(tempArr[Math.floor(tempArr.length / 2)]);
+        //             fastest.push(tempArr[0]);
+        //             slowest.push(tempArr[tempArr.length - 1]);
+        //         }
 
-                avg = Utils.formatMSandTick(avg);
-                fastest = Utils.formatMSandTick(avg);
-                slowest = Utils.formatMSandTick(avg);
+        //         avg = Utils.formatMSandTick(avg);
+        //         fastest = Utils.formatMSandTick(avg);
+        //         slowest = Utils.formatMSandTick(avg);
 
-                ChatLib.chat(` $7> &6${split}&f: avg: ${avg} fastest: ${fastest} slowest: ${slowest} &7[${tempArr.length}]`);            
-            }
-        }
+        //         ChatLib.chat(` $7> &6${split}&f: avg: ${avg} fastest: ${fastest} slowest: ${slowest} &7[${tempArr.length}]`);            
+        //     }
+        // }
     }
 
     static viewFile(filename) {
@@ -1727,7 +1730,7 @@ class DungeonSession {
             runTimes: this.runTimes,
             scores: this.scores,
             teammates: Array.from(this.teammates),
-            totalTime: Date.now() - this.startedAt,
+            totalTime: this.lastRunTimestamp - this.startedAt,
             floor: this.floor,
             xp: this.xp,
             splits: this.splits,

@@ -1602,19 +1602,19 @@ class DungeonSession {
         Utils.chatMsgClickCMD(`&7>> &9Teammates&f: ${tempData.teammates.join(", ")}`, `/${BigCommand.cmdName} session viewteammates ${filename}`);
 
 
-        ChatLib.chat(`&7------------&3Splits&7------------`);
+        
         for (let splitName of Object.keys(tempData.splits)) {
             let split = tempData.splits[splitName];
-            let tempSplitCopy = split.sort( (a, b) => a[0] - b[0]);
+            let tempSplitCopy = split.map(x => x[0] / 1000).sort( (a, b) => a - b);
             let avg = tempSplitCopy[Math.floor(tempSplitCopy.length / 2)];
             let fastest = tempSplitCopy[0];
             let slowest = tempSplitCopy[tempSplitCopy.length - 1];
 
-            avg = Utils.formatMSandTick(avg);
-            fastest = Utils.formatMSandTick(fastest);
-            slowest = Utils.formatMSandTick(slowest);
+            avg = Utils.secondsToFormatted(avg);
+            fastest = Utils.secondsToFormatted(fastest);
+            slowest = Utils.secondsToFormatted(slowest);
             
-            ChatLib.chat(` &7> &6${splitName}&f: avg: ${avg} fastest: ${fastest} slowest: ${slowest} &7[${split.length}]`);
+            ChatLib.chat(` &8> &6${splitName}&f: &7AVG: &f${avg} &7BEST: &f${fastest} &7WORST: &f${slowest}`);
         }
         
         if (Object.keys(tempData.loot).length != 0) {

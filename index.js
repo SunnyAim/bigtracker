@@ -2,7 +2,7 @@ import PogObject from "../PogData";
 import request from "../requestV2";
 
 /*
-to do
+to do     
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 [MVP+] eatplastic has obtained Fair Ice Spray Wand!
 
@@ -29,7 +29,8 @@ const data = new PogObject("bigtracker", {
     autoStartSession: true,
     nameHistory: 0,
     runHistoryLength: 30,
-    debugMsgs: false
+    debugMsgs: false,
+    hideWorthless: true
 }, "settings.json");
 
 const runData = new PogObject("bigtracker", {
@@ -880,6 +881,11 @@ class Utils {
 
             let price = Math.trunc(Prices.getPrice(type));
             totalCoins += price;
+
+            if (data?.hideWorthless && price <= 10000) {
+                continue;
+            }
+            
             if (price == 0) {
                 ChatLib.chat(`&b${floorLoot[type]}x &a${type}`);
             } else {
@@ -1067,7 +1073,7 @@ register("packetSent", (packet, event) => {
 
 
 class BigCommand {
-    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "session", "runhistorylength", "autokick", "sayreason", "viewfile", "autostart"];
+    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "session", "runhistorylength", "autokick", "sayreason", "viewfile", "autostart", "debugmsgs", "hideworthless"];
     static cmdName = "big";
     static chestTypes = ["WOOD CHEST REWARDS", "GOLD CHEST REWARDS", "DIAMOND CHEST REWARDS", "EMERALD CHEST REWARDS", "OBSIDIAN CHEST REWARDS", "BEDROCK CHEST REWARDS"];
     static essenceTypes = ["Undead Essence", "Wither Essence"];
@@ -1624,7 +1630,7 @@ class DungeonSession {
                 fastest = Utils.formatMSandTick(avg);
                 slowest = Utils.formatMSandTick(avg);
 
-                ChatLib.chat(` $7> &6${split}&f: avg: ${avg} fastest: ${fastest} slowest: ${slowest} &7[${tempArr.length}]`);
+                ChatLib.chat(` $7> &6${split}&f: avg: ${avg} fastest: ${fastest} slowest: ${slowest} &7[${combinedSplits[split].length}]`);
             }
         }
         
@@ -1675,7 +1681,13 @@ class DungeonSession {
             this.teammates.add(name);
         }
 
-        this.splits.push(splits);
+        // this.splits.push(splits);
+        for (let splitType of Object.keys(splits)) {
+            if (!this.splits?.[splitType]) {
+                this.splits[splitType] = [];
+            }
+            this.splits[splitType].push(splits[splitType]);
+        }
         this.floor = floor;
         this.lastRunTimestamp = Date.now();
         this.runTimes.push(time);
@@ -1743,6 +1755,7 @@ register("command", (...args) => {
             BigCommand.help();
             break;
         case "debug":
+        case "debugmsgs":
             data.debugMsgs = !data?.debugMsgs;
             Utils.chatMsgClickCMD(`&7>> &fdebugmsgs ${data.debugMsgs ? "&aenabled" : "&cdisabled"}`, `/${BigCommand.cmdName} debug`);
             data.save();
@@ -1794,6 +1807,11 @@ register("command", (...args) => {
         case "namehistory":
             data.nameHistory = (data.nameHistory || 2) - 1;
             Utils.chatMsgClickCMD(`&7>> &fname history site set to ${data.nameHistory ? "&blaby" : "&enamemc"}`, `/${BigCommand.cmdName} namehistory`);
+            data.save();
+            break;
+        case "hideworthless":
+            data.hideWorthless = !data?.hideWorthless;
+            Utils.chatMsgClickCMD(`&7>> &fhideworthless ${data.hideWorthless ? "&aenabled" : "&cdisabled"}`, `/${BigCommand.cmdName} hideworthless`);
             data.save();
             break;
         default:

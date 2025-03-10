@@ -1601,20 +1601,8 @@ class DungeonSession {
         ChatLib.chat(`&7>> &9Avg Time&f: ${Utils.secondsToFormatted(tempData.averageTime)}`);
         Utils.chatMsgClickCMD(`&7>> &9Teammates&f: ${tempData.teammates.join(", ")}`, `/${BigCommand.cmdName} session viewteammates ${filename}`);
 
-        // if (tempData?.splits && tempData?.v >= 0.2) {
-        //     let combinedSplits = {};
 
-        //     for (let i = 0; i < tempData.splits.length; i++) {
-        //         let splitKeys = Object.keys(tempData.splits[i]);
-        //         for (let j = 0; j < splitKeys.length; j++) {
-        //             if (!combinedSplits[splitKeys[j]]) {
-        //                 combinedSplits[splitKeys[j]] = [];
-        //             }
-        //             combinedSplits[splitKeys[j]].push(tempData.splits[i][splitKeys[j]]);
-        //         }
-        //     }
-
-            ChatLib.chat(`&7------------&3Splits&7------------`);
+        ChatLib.chat(`&7------------&3Splits&7------------`);
         for (let splitName of Object.keys(tempData.splits)) {
             let split = tempData.splits[splitName];
             let tempSplitCopy = split.sort( (a, b) => a[0] - b[0]);

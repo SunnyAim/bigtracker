@@ -8,7 +8,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
 track s+ rate with a player
 
-stats stats like number of players logged, num sessions etc.
+stats stats like number of players logged, num sessions, filter etc
 
 all floors compatability
 */
@@ -1083,7 +1083,7 @@ register("packetSent", (packet, event) => {
 
 
 class BigCommand {
-    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "session", "runhistorylength", "autokick", "sayreason", "viewfile", "autostart", "debugmsgs", "hideworthless"];
+    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "session", "runhistorylength", "autokick", "sayreason", "viewfile", "autostart", "debugmsgs", "hideworthless", "stats"];
     static cmdName = "big";
     static chestTypes = ["WOOD CHEST REWARDS", "GOLD CHEST REWARDS", "DIAMOND CHEST REWARDS", "EMERALD CHEST REWARDS", "OBSIDIAN CHEST REWARDS", "BEDROCK CHEST REWARDS"];
     static essenceTypes = ["Undead Essence", "Wither Essence"];
@@ -1103,6 +1103,48 @@ class BigCommand {
         Utils.chatMsgClickCMD("&7>> &floot &bfloor &7(ex: loot m7)", `/${BigCommand.cmdName} loot m7`);
         Utils.chatMsgClickCMD("&7>> &fsession &7(click for more info)", `/${BigCommand.cmdName} session`);
         ChatLib.chat("&7>> &fviewfile &busername &7(prints the players entire file in your chat, no reason to ever use this probably)");
+    }
+
+    static getFileStats = () => {
+        let fileNameList = new File("./config/ChatTriggers/modules/bigtracker/bigplayers").list().filter(x => x.length == 37); 
+        let sessionList = new File("./config/ChatTriggers/modules/bigtracker/bigsessions").list().filter(x => x.length == 18);
+        ChatLib.chat(`&7> &9Players Logged&f: ${fileNameList.length}`);
+        ChatLib.chat(`&7> &9Sessions&f: ${sessionList.length}`);
+
+        new Thread( () => {
+            let tracking = {
+                "bestSS": [],
+                "worstSS": [],
+                "mostRuns": [],
+                "mostDeaths": [],
+                "longestDodgeLen": []
+            };
+
+            for (let i = 0; i < fileNameList.length; i++) {
+                let tempPlayer = new BigPlayer(fileNameList[i].replace(".json", ""));
+
+                if (tempPlayer.playerData?.["SSpb"]) {
+                    if (tempPlayer.playerData?.["USERNAME"] == Player.getName().toLowerCase()) continue;
+
+                    if (tracking["bestSS"].length == 0) {
+                        tracking["bestSS"] = [tempPlayer.playerData["USERNAME"], tempPlayer.playerData["SSpb"]];
+                        tracking["worstSS"] = [tempPlayer.playerData["USERNAME"], tempPlayer.playerData["SSpb"]];
+                    } else if (tempPlayer.playerData?.["SSpb"][0] < tracking["bestSS"][1][0]) {
+                        tracking["bestSS"] = [tempPlayer.playerData["USERNAME"], tempPlayer.playerData["SSpb"]];
+                    } else if (tempPlayer.playerData?.["SSpb"][0] > tracking["worstSS"][1][0]) {
+                        tracking["worstSS"] = [tempPlayer.playerData["USERNAME"], tempPlayer.playerData["SSpb"]];
+                    }
+                }
+
+                if (tracking["mostRuns"].length == 0 || tempPlayer.playerData?.["RUNS"] > tracking["mostRuns"][1]) {
+                    tracking["mostRuns"] = [tempPlayer.playerData["USERNAME"], (tempPlayer.playerData?.["RUNS"] || 0)];
+                }
+            }
+
+            ChatLib.chat(`&7> Best SS: ${tracking["bestSS"][0]} : ${Utils.formatMSandTick(tracking["bestSS"][1])}`);
+            ChatLib.chat(`&7> Worst SS: ${tracking["worstSS"][0]} : ${Utils.formatMSandTick(tracking["worstSS"][1])}`);
+            ChatLib.chat(`&7> Most Runs: ${tracking["mostRuns"][0]} : ${tracking["mostRuns"][1]}`);
+        }).start();
     }
 
     static runHistoryLength(args) {
@@ -1749,6 +1791,9 @@ register("command", (...args) => {
         case "help":
             BigCommand.help();
             break;
+        case "stats":
+            BigCommand.getFileStats();
+            break;
         case "debug":
         case "debugmsgs":
             data.debugMsgs = !data?.debugMsgs;
@@ -1814,8 +1859,6 @@ register("command", (...args) => {
             break;
     }
 }).setTabCompletions( (args) => {
-        let name = "";
-
         if (!args || args.length == 0 || args?.[0]?.trim() == "") {
             return BigCommand.tabCommands;
         }

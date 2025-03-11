@@ -124,15 +124,15 @@ class ChatHandler {
             if (text.match(/.+Essence x(\d+)/)) {
                 let amt = parseInt(text.match(/.+Essence x(\d+)/)[1]);
                 let type = text.match(/(.+ Essence) x.+/)[1].trim();
-                runData["chests"][ChatHandler.lastGuiName][type] = (runData["chests"][ChatHandler.lastGuiName][type] || 0) + amt;
+                runData["chests"][ChatHandler.lastGuiName][type] = (runData["chests"][ChatHandler.lastGuiName]?.[type] || 0) + amt;
                 if (BigCommand.dungeonSession != null) {
                     BigCommand.dungeonSession.loot[type] = (BigCommand.dungeonSession.loot[type] || 0) + amt;
                 }
             } else {
                 text = text.trim().replace("RARE REWARD! ", "");
-                runData["chests"][ChatHandler.lastGuiName][text] = (runData["chests"][ChatHandler.lastGuiName][text] || 0) + 1;
+                runData["chests"][ChatHandler.lastGuiName][text] = (runData["chests"][ChatHandler.lastGuiName]?.[text] || 0) + 1;
                 if (BigCommand.dungeonSession != null) {
-                    BigCommand.dungeonSession.loot[text] = (BigCommand.dungeonSession.loot[text] || 0) + 1;
+                    BigCommand.dungeonSession.loot[text] = (BigCommand.dungeonSession.loot?.[text] || 0) + 1;
                 }
             }
         }
@@ -204,6 +204,18 @@ class ChatHandler {
 
         if (text == "[BOSS] Wither King: Incredible. You did what I couldn't do myself.") {
             ChatHandler.dungeon.doSplit(DungeonRun.SplitType.P5, DungeonRun.SplitType.END);
+            return;
+        }
+
+        // FLOOR 5 SPLITS
+        if (text == "[BOSS] Livid: Welcome, you've arrived right on time. I am Livid, the Master of Shadows.") {
+            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.LIVID, DungeonRun.SplitType.START);
+            return;
+        }
+
+        if (text.match(/\[BOSS\] .+ Livid: My shadows are everywhere, THEY WILL FIND YOU!!/)) {
+            ChatHandler.dungeon.doSplit(DungeonRun.SplitType.LIVID, DungeonRun.SplitType.END);
+            ChatHandler.dungeon.doSplit(BigPlayer.TaskType.RUN, DungeonRun.SplitType.END);
             return;
         }
 
@@ -725,7 +737,8 @@ class DungeonRun {
         TERMS: "TERMS",
         GOLDOR: "GOLDOR",
         NECRON: "NECRON",
-        P5: "P5"
+        P5: "P5",
+        LIVID: "LIVID"
     });
 
     constructor() {
@@ -904,7 +917,7 @@ class Utils {
         }
 
         for (let type of Object.keys(floorLoot)) {
-            if (BigCommand.essenceTypes.includes(type) || BigCommand.chestTypes.includes(type) || type == "Total" || type.includes("Enchanted Book")) {
+            if (BigCommand.essenceTypes.includes(type) || BigCommand.chestTypes.includes(type) || type == "Total" || type.includes("Enchanted Book") || type == "Cost") {
                 continue;
             }
             // &a green &6 gold
@@ -919,6 +932,18 @@ class Utils {
         }
 
         ChatLib.chat(`&cTotal Coins: &6${Utils.formatNumber(totalCoins)}`);
+        if (floorLoot?.["Cost"]) {
+            ChatLib.chat(`&cTotal Cost: &6${Utils.formatNumber(floorLoot["Cost"])}`);
+        }
+
+        if (floorLoot?.["Keys"]) {
+            ChatLib.chat(`&cKeys Used: &6${floorLoot["Keys"]}`);
+        }
+
+        if (totalCoins && floorLoot?.["Cost"]) {
+            ChatLib.chat(`&cFinal Coins: &6${totalCoins - floorLoot["Cost"]}`);
+        }
+        
 
         if (printTotal) {
             ChatLib.chat(`&cProfit/Chest: &6${Utils.formatNumber(Math.trunc(totalCoins / floorLoot["Total"]))}`);
@@ -1078,6 +1103,38 @@ register("packetSent", (packet, event) => {
             return;
         }
         ChatHandler.lastGuiName = `${cataType} ${cataFloor}`;
+    }
+    else if (item.getName().includes("Open Reward Chest")) {
+        let cost = 0;
+        let addChestKey = false;
+        let lore = item.getLore();
+        for (let i = 0; i < lore.length; i++) {
+            let line = lore[i].removeFormatting().replaceAll(",", "");;
+            let match = line.match(/(\d+) Coins/);
+            if (match?.[1]) {
+                cost += parseInt(match[1]);
+            }
+            
+            if (line == "Dungeon Chest Key") {
+                addChestKey = true;
+            }
+        }
+        if (cost > 0) {
+            if (!runData["chests"]?.[ChatHandler.lastGuiName]) {
+                runData["chests"][ChatHandler.lastGuiName] = {
+                    Total: 0
+                };
+            }
+
+            runData["chests"][ChatHandler.lastGuiName]["Cost"] = (runData["chests"][ChatHandler.lastGuiName]?.["Cost"] || 0) + cost;
+            runData["chests"][ChatHandler.lastGuiName]["Keys"] = (runData["chests"][ChatHandler.lastGuiName]?.["Keys"] || 0) + (addChestKey ? 1 : 0);
+
+            if (BigCommand.dungeonSession != null) {
+                BigCommand.dungeonSession.loot["Cost"] = (BigCommand.dungeonSession.loot?.["Cost"] || 0) + cost;
+                BigCommand.dungeonSession.loot["Keys"] = (BigCommand.dungeonSession.loot?.["Keys"] || 0) + (addChestKey ? 1 : 0);
+            }
+        }
+        ChatLib.chat(cost);
     }
 }).setFilteredClass(C0EPacketClickWindow);
 

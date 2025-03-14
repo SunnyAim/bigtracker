@@ -2023,6 +2023,7 @@ if (data.firstTime) {
 }
 
 let chestProfits = null;
+let chestProfitNum = null;
 
 register("renderSlot", (slot) => {
     if (chestProfits == null) return;
@@ -2041,12 +2042,19 @@ register("renderSlot", (slot) => {
     const y = slot.getDisplayY()
 
     Renderer.drawRect(index == 0 ? Renderer.GREEN : Renderer.BLUE, x, y, 16, 16);
+
+    Renderer.translate(x, y + (index * 16), 1000);
+    Renderer.scale(.7);
+    Renderer.colorize(255, 0, 0, 255);
+    Renderer.drawString(chestProfitNum[index], -5, 0);
+    Renderer.finishDraw();
 });
 
 register("step", () => {
     let isCroesus = Player.getContainer()?.getName()?.includes("The Catacombs");
     if (!isCroesus) {
         chestProfits = null;
+        chestProfitNum = null;
         return;
     }
 
@@ -2055,6 +2063,8 @@ register("step", () => {
     }
 
     chestProfits = [];
+    chestProfitNum = [];
+    
     let profitToChest = new Map();
 
     let containerItems = Player.getContainer().getItems().filter(item => item?.getName()?.removeFormatting()?.match(/(Wood|Gold|Diamond|Emerald|Obsidian|Bedrock) Chest/));
@@ -2067,28 +2077,31 @@ register("step", () => {
             let line = lore[i].removeFormatting().replaceAll(",", "");
             if (line.match(/(\d+) Coins/)) {
                 profit -= parseInt(line.match(/(\d+) Coins/)[1]);
-                continue;
             } else if (line == "Dungeon Chest Key") {
                 profit -= Prices.getPrice("DUNGEON_CHEST_KEY");
-                continue;
             } else if (line.includes("Already opened!")) {
                 alreadyOpened = true;
-                continue;
+            } else if (line.match(/(Undead|Wither) Essence x(\d+)/)) {
+                let match = line.match(/(Undead|Wither) Essence x(\d+)/);
+                let type = match[1] + " Essence";
+                profit += Prices.getPrice(type) * parseInt(match[2]);
+            } else {
+                profit += Prices.getPrice(lore[i].removeFormatting());
             }
-            profit += Prices.getPrice(lore[i].removeFormatting());
         }
         if (alreadyOpened) continue;
         profitToChest.set(profit, item.getName().removeFormatting());
     }
 
-    let sortedProfit = Array.from(profitToChest.keys()).sort( (a, b) => a + b);
-    // console.log(sortedProfit.toString())
+    let sortedProfit = Array.from(profitToChest.keys()).map(val => parseFloat(val)).sort( (a, b) => a - b).reverse();
+    console.log(sortedProfit.toString())
     for (let i = 0; i < 2; i++) {
         if (sortedProfit[i] < (data?.minProfit || 100000)) {
             return;
         }
 
         chestProfits.push(profitToChest.get(sortedProfit[i]));
+        chestProfitNum.push(`${Utils.formatNumber(Math.floor(sortedProfit[i]))}`);
     }
 }).setFps(5);
 

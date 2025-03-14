@@ -1922,7 +1922,7 @@ register("command", (...args) => {
                 return;
             }
             data.minProfit = num;
-            ChatLib.chat(`&7>> &9Min Profit set to &f${data.minProfit}`);
+            ChatLib.chat(`&7>> &9Min Profit set to &f${Utils.formatNumber(data.minProfit)}`);
             data.save();
             break;
         default:
@@ -2072,15 +2072,15 @@ register("step", () => {
         let item = containerItems[i];
         let profit = 0;
         let lore = item.getLore();
-        let alreadyOpened = false;
+        // let alreadyOpened = false;
         for (let i = 0; i < lore.length; i++) {
             let line = lore[i].removeFormatting().replaceAll(",", "");
             if (line.match(/(\d+) Coins/)) {
                 profit -= parseInt(line.match(/(\d+) Coins/)[1]);
             } else if (line == "Dungeon Chest Key") {
-                profit -= Prices.getPrice("DUNGEON_CHEST_KEY");
+                // profit -= Prices.getPrice("DUNGEON_CHEST_KEY");
             } else if (line.includes("Already opened!")) {
-                alreadyOpened = true;
+                // alreadyOpened = true;
             } else if (line.match(/(Undead|Wither) Essence x(\d+)/)) {
                 let match = line.match(/(Undead|Wither) Essence x(\d+)/);
                 let type = match[1] + " Essence";
@@ -2089,19 +2089,19 @@ register("step", () => {
                 profit += Prices.getPrice(lore[i].removeFormatting());
             }
         }
-        if (alreadyOpened) continue;
         profitToChest.set(profit, item.getName().removeFormatting());
     }
 
     let sortedProfit = Array.from(profitToChest.keys()).map(val => parseFloat(val)).sort( (a, b) => a - b).reverse();
     console.log(sortedProfit.toString())
+    let keyPrice = Prices.getPrice("DUNGEON_CHEST_KEY");
     for (let i = 0; i < 2; i++) {
-        if (sortedProfit[i] < (data?.minProfit || 100000)) {
+        if (sortedProfit[i] - (keyPrice * i) < (data?.minProfit || 100000)) {
             return;
         }
 
         chestProfits.push(profitToChest.get(sortedProfit[i]));
-        chestProfitNum.push(`${Utils.formatNumber(Math.floor(sortedProfit[i]))}`);
+        chestProfitNum.push(`${Utils.formatNumber(Math.floor(sortedProfit[i] - (keyPrice * i)))}`);
     }
 }).setFps(5);
 

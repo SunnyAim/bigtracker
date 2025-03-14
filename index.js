@@ -18,8 +18,8 @@ const S32PacketConfirmTransaction = Java.type("net.minecraft.network.play.server
 const C0EPacketClickWindow = Java.type("net.minecraft.network.play.client.C0EPacketClickWindow");
 const File = Java.type("java.io.File");
 
-const playerData = {};
-const namesToUUID = {};
+const uuidToData = new Map();
+const namesToUUID = new Map();
 const tabCompleteNames = new Set();
 
 const data = new PogObject("bigtracker", {
@@ -57,8 +57,8 @@ const getPlayerByName = (name, task=null, extra=null) => {
         return;
     }
     
-    if (namesToUUID?.[name] && playerData[namesToUUID[name]]) {
-        playerData[namesToUUID[name]].doTask(task, extra);
+    if (namesToUUID.has(name) && uuidToData.has(namesToUUID.get(name))) {
+        uuidToData.get(namesToUUID.get(name)).doTask(task, extra);
         return;
     }
 
@@ -66,12 +66,12 @@ const getPlayerByName = (name, task=null, extra=null) => {
         .then(function(res) {
             const UUID = JSON.parse(res)?.id;
             NAME = JSON.parse(res)?.name?.toLowerCase();
-            namesToUUID[name] = UUID;
+            namesToUUID.set(NAME, UUID);
             tabCompleteNames.add(NAME);
 
             let player = new BigPlayer(UUID, NAME);
             player.doTask(task, extra);
-            playerData[UUID] = player;
+            uuidToData.set(UUID, player);
         }
     );
 }
@@ -1109,7 +1109,7 @@ register("packetSent", (packet, event) => {
         let addChestKey = false;
         let lore = item.getLore();
         for (let i = 0; i < lore.length; i++) {
-            let line = lore[i].removeFormatting().replaceAll(",", "");;
+            let line = lore[i].removeFormatting().replaceAll(",", "");
             let match = line.match(/(\d+) Coins/);
             if (match?.[1]) {
                 cost += parseInt(match[1]);
@@ -1140,7 +1140,7 @@ register("packetSent", (packet, event) => {
 
 
 class BigCommand {
-    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "session", "runhistorylength", "autokick", "sayreason", "viewfile", "autostart", "debugmsgs", "hideworthless", "stats"];
+    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "session", "runhistorylength", "autokick", "sayreason", "viewfile", "autostart", "minprofit", "debugmsgs", "hideworthless", "stats"];
     static cmdName = "big";
     static chestTypes = ["WOOD CHEST REWARDS", "GOLD CHEST REWARDS", "DIAMOND CHEST REWARDS", "EMERALD CHEST REWARDS", "OBSIDIAN CHEST REWARDS", "BEDROCK CHEST REWARDS"];
     static essenceTypes = ["Undead Essence", "Wither Essence"];
@@ -1911,6 +1911,20 @@ register("command", (...args) => {
             Utils.chatMsgClickCMD(`&7>> &fhideworthless ${data.hideWorthless ? "&aenabled" : "&cdisabled"}`, `/${BigCommand.cmdName} hideworthless`);
             data.save();
             break;
+        case "minprofit":
+            if (!args?.[1]) {
+                ChatLib.chat("no number entered");
+                return;
+            }
+            let num = parseInt(args[1]);
+            if (isNaN(num)) {
+                ChatLib.chat("isnt a number");
+                return;
+            }
+            data.minProfit = num;
+            ChatLib.chat(`&7>> &9Min Profit set to &f${data.minProfit}`);
+            data.save();
+            break;
         default:
             BigCommand.view(args);
             break;
@@ -2007,6 +2021,76 @@ if (data.firstTime) {
         }
     }
 }
+
+let chestProfits = null;
+
+register("renderSlot", (slot) => {
+    if (chestProfits == null) return;
+
+    let item = slot?.getItem();
+    if (!item) return;
+
+    let name = item?.getName()?.removeFormatting();
+    if (!name?.match(/(Wood|Gold|Diamond|Emerald|Obsidian|Bedrock) Chest/)) return;
+
+    let index = chestProfits.indexOf(name);
+
+    if (index == -1) return;
+
+    const x = slot.getDisplayX()
+    const y = slot.getDisplayY()
+
+    Renderer.drawRect(index == 0 ? Renderer.GREEN : Renderer.BLUE, x, y, 16, 16);
+});
+
+register("step", () => {
+    let isCroesus = Player.getContainer()?.getName()?.includes("The Catacombs");
+    if (!isCroesus) {
+        chestProfits = null;
+        return;
+    }
+
+    if (chestProfits != null) {
+        return;
+    }
+
+    chestProfits = [];
+    let profitToChest = new Map();
+
+    let containerItems = Player.getContainer().getItems().filter(item => item?.getName()?.removeFormatting()?.match(/(Wood|Gold|Diamond|Emerald|Obsidian|Bedrock) Chest/));
+    for (let i = 0; i < containerItems.length; i++) {
+        let item = containerItems[i];
+        let profit = 0;
+        let lore = item.getLore();
+        let alreadyOpened = false;
+        for (let i = 0; i < lore.length; i++) {
+            let line = lore[i].removeFormatting().replaceAll(",", "");
+            if (line.match(/(\d+) Coins/)) {
+                profit -= parseInt(line.match(/(\d+) Coins/)[1]);
+                continue;
+            } else if (line == "Dungeon Chest Key") {
+                profit -= Prices.getPrice("DUNGEON_CHEST_KEY");
+                continue;
+            } else if (line.includes("Already opened!")) {
+                alreadyOpened = true;
+                continue;
+            }
+            profit += Prices.getPrice(lore[i].removeFormatting());
+        }
+        if (alreadyOpened) continue;
+        profitToChest.set(profit, item.getName().removeFormatting());
+    }
+
+    let sortedProfit = Array.from(profitToChest.keys()).sort( (a, b) => a + b);
+    // console.log(sortedProfit.toString())
+    for (let i = 0; i < 2; i++) {
+        if (sortedProfit[i] < (data?.minProfit || 100000)) {
+            return;
+        }
+
+        chestProfits.push(profitToChest.get(sortedProfit[i]));
+    }
+}).setFps(5);
 
 
 register("gameUnload", () => {

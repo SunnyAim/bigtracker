@@ -917,7 +917,7 @@ class Utils {
         }
 
         for (let type of Object.keys(floorLoot)) {
-            if (BigCommand.essenceTypes.includes(type) || BigCommand.chestTypes.includes(type) || type == "Total" || type.includes("Enchanted Book") || type == "Cost") {
+            if (BigCommand.essenceTypes.includes(type) || BigCommand.chestTypes.includes(type) || type == "Total" || type.includes("Enchanted Book") || type == "Cost" || type == "Keys") {
                 continue;
             }
             // &a green &6 gold
@@ -941,7 +941,7 @@ class Utils {
         }
 
         if (totalCoins && floorLoot?.["Cost"]) {
-            ChatLib.chat(`&cFinal Coins: &6${totalCoins - floorLoot["Cost"]}`);
+            ChatLib.chat(`&cFinal Coins: &6${Utils.formatNumber(totalCoins - floorLoot["Cost"])}`);
         }
         
 
@@ -2103,7 +2103,7 @@ register("step", () => {
         chestProfits.push(profitToChest.get(sortedProfit[i]));
         chestProfitNum.push(`${Utils.formatNumber(Math.floor(sortedProfit[i] - (keyPrice * i)))}`);
     }
-}).setFps(5);
+}).setFps(10);
 
 
 register("gameUnload", () => {

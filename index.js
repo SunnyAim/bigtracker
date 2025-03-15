@@ -228,11 +228,6 @@ class ChatHandler {
             }
 
             if (!ChatHandler.dungeon.ssDone && ChatHandler.dungeon.partyMembers[name] == "Healer") {
-                // for (let typeKey of Object.keys(ChatHandler.dungeon.splits)) {
-                //     for (let tempKey of Object.keys(ChatHandler.dungeon.splits[typeKey])) {
-                //         console.log(`${typeKey} ${tempKey} ${ChatHandler.dungeon.splits[typeKey][tempKey]}`);
-                //     }
-                // }
                 let compMS = Date.now() - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.TERMS][0];
                 let compTicks = tick.getTotalTicks() - ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.TERMS][1];
                 
@@ -917,7 +912,7 @@ class Utils {
         }
 
         for (let type of Object.keys(floorLoot)) {
-            if (BigCommand.essenceTypes.includes(type) || BigCommand.chestTypes.includes(type) || type == "Total" || type.includes("Enchanted Book") || type == "Cost" || type == "Keys") {
+            if (BigCommand.essenceTypes.includes(type) || BigCommand.chestTypes.includes(type) || type == "Total" || type.includes("Enchanted Book") || type == "Cost" || type == "Keys" || type == "Kismet Feather") {
                 continue;
             }
             // &a green &6 gold
@@ -931,18 +926,17 @@ class Utils {
             ChatLib.chat(`&cTotal Chests: &7${Utils.formatNumber(floorLoot["Total"])}`);
         }
 
-        if (floorLoot?.["Keys"]) {
-            ChatLib.chat(`&cKeys Used: &7${floorLoot["Keys"]}`);
+        let kismetPrice =  Math.floor(Prices.getPrice("Kismet Feather")) * (floorLoot?.["Kismet Feather"] || 0);
+        let keyPrice = Math.floor(Prices.getPrice("Dungeon Chest Key")) * (floorLoot?.["Keys"] || 0);
+        if (floorLoot?.["Kismet Feather"] || floorLoot?.["Keys"]) {
+            ChatLib.chat(`&2Keys: &f${floorLoot?.["Keys"] || 0}&7 (&6${Utils.formatNumber(keyPrice)}&7) &8|| &2Kismets: &f${floorLoot?.["Kismet Feather"] || 0}&7 (&6${Utils.formatNumber(kismetPrice)}&7)`);
         }
 
         ChatLib.chat(`&cTotal Coins: &6${Utils.formatNumber(totalCoins)}`);
-        if (floorLoot?.["Cost"]) {
-            ChatLib.chat(`&cTotal Cost: &6${Utils.formatNumber(floorLoot["Cost"])}`);
-        }
 
-        if (totalCoins && floorLoot?.["Cost"]) {
-            ChatLib.chat(`&cFinal Coins: &6${Utils.formatNumber(totalCoins - floorLoot["Cost"])}`);
-        }
+        ChatLib.chat(`&cTotal Cost: &6${Utils.formatNumber((floorLoot?.["Cost"] || 0) + kismetPrice + keyPrice)}`);
+
+        ChatLib.chat(`&cFinal Coins: &6${Utils.formatNumber(totalCoins - (floorLoot?.["Cost"] || 0) - kismetPrice - keyPrice)}`);
     }
 
     static tierToColor = {
@@ -1098,8 +1092,7 @@ register("packetSent", (packet, event) => {
             return;
         }
         ChatHandler.lastGuiName = `${cataType} ${cataFloor}`;
-    }
-    else if (item.getName().includes("Open Reward Chest")) {
+    } else if (item.getName()?.includes("Open Reward Chest")) {
         let cost = 0;
         let addChestKey = false;
         let lore = item.getLore();
@@ -1129,13 +1122,22 @@ register("packetSent", (packet, event) => {
                 BigCommand.dungeonSession.loot["Keys"] = (BigCommand.dungeonSession.loot?.["Keys"] || 0) + (addChestKey ? 1 : 0);
             }
         }
-        ChatLib.chat(cost);
+    } else if (item.getName()?.includes("Reroll Chest")) {
+        if (!runData["chests"]?.[ChatHandler.lastGuiName]) {
+            runData["chests"][ChatHandler.lastGuiName] = {
+                Total: 0
+            };
+        }
+        runData["chests"][ChatHandler.lastGuiName]["Kismet Feather"] = (runData["chests"][ChatHandler.lastGuiName]?.["Kismet Feather"] || 0) + 1;
+        if (BigCommand.dungeonSession != null) {
+            BigCommand.dungeonSession.loot["Kismet Feather"] = (BigCommand.dungeonSession.loot?.["Kismet Feather"] || 0) + 1;
+        }
     }
 }).setFilteredClass(C0EPacketClickWindow);
 
 
 class BigCommand {
-    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "session", "runhistorylength", "autokick", "sayreason", "viewfile", "autostart", "minprofit", "debugmsgs", "hideworthless", "stats"];
+    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "session", "croesus", "runhistorylength", "autokick", "sayreason", "viewfile", "autostart", "minprofit", "debugmsgs", "hideworthless", "stats"];
     static cmdName = "big";
     static chestTypes = ["WOOD CHEST REWARDS", "GOLD CHEST REWARDS", "DIAMOND CHEST REWARDS", "EMERALD CHEST REWARDS", "OBSIDIAN CHEST REWARDS", "BEDROCK CHEST REWARDS"];
     static essenceTypes = ["Undead Essence", "Wither Essence"];
@@ -1147,6 +1149,7 @@ class BigCommand {
         Utils.chatMsgClickCMD(`&7>> &fautokick&7: &${data.autoKick ? "aenabled" : "cdisabled"}`, `/${BigCommand.cmdName} autokick`);
         Utils.chatMsgClickCMD(`&7>> &fsayreason&7: &${data.sayReason ? "aenabled" : "cdisabled"}`, `/${BigCommand.cmdName} sayreason`);
         Utils.chatMsgClickCMD(`&7>> &fauto start session&7: &${data.autoStartSession ? "aenabled" : "cdisabled"}`, `/${BigCommand.cmdName} autostart`);
+        Utils.chatMsgClickCMD(`&7>> &fcroesus overlay ${data.croesusOverlay ? "&aenabled" : "&cdisabled"}`, `/${BigCommand.cmdName} croesus`);
         Utils.chatMsgClickCMD(`&7>> &fname history site&7: &${data.nameHistory ? "blaby" : "enamemc"}`, `/${BigCommand.cmdName} namehistory`);
         ChatLib.chat("&7>> &fdodge &bname days? note?");
         ChatLib.chat("&7>> &fnote &bname note");
@@ -1920,6 +1923,12 @@ register("command", (...args) => {
             ChatLib.chat(`&7>> &9Min Profit set to &f${Utils.formatNumber(data.minProfit)}`);
             data.save();
             break;
+        case "profit":
+        case "croesus":
+            data.croesusOverlay = !data?.croesusOverlay;
+            ChatLib.chat(`&7>> &9Croesus Overlay ${data.croesusOverlay ? "&aenabled" : "&cdisabled"}`);
+            data.save();
+            break;
         default:
             BigCommand.view(args);
             break;
@@ -2021,6 +2030,7 @@ let chestProfits = null;
 let chestProfitNum = null;
 
 register("renderSlot", (slot) => {
+    if (!data?.croesusOverlay) return;
     if (chestProfits == null) return;
 
     let item = slot?.getItem();
@@ -2046,6 +2056,7 @@ register("renderSlot", (slot) => {
 });
 
 register("step", () => {
+    if (!data?.croesusOverlay) return;
     let isCroesus = Player.getContainer()?.getName()?.includes("The Catacombs");
     if (!isCroesus) {
         chestProfits = null;
@@ -2088,7 +2099,6 @@ register("step", () => {
     }
 
     let sortedProfit = Array.from(profitToChest.keys()).map(val => parseFloat(val)).sort( (a, b) => a - b).reverse();
-    console.log(sortedProfit.toString())
     let keyPrice = Prices.getPrice("DUNGEON_CHEST_KEY");
     for (let i = 0; i < 2; i++) {
         if (sortedProfit[i] - (keyPrice * i) < (data?.minProfit || 100000)) {
@@ -2099,6 +2109,7 @@ register("step", () => {
         chestProfitNum.push(`${Utils.formatNumber(Math.floor(sortedProfit[i] - (keyPrice * i)))}`);
     }
 }).setFps(10);
+
 
 
 register("gameUnload", () => {

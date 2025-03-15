@@ -931,22 +931,17 @@ class Utils {
             ChatLib.chat(`&cTotal Chests: &7${Utils.formatNumber(floorLoot["Total"])}`);
         }
 
+        if (floorLoot?.["Keys"]) {
+            ChatLib.chat(`&cKeys Used: &7${floorLoot["Keys"]}`);
+        }
+
         ChatLib.chat(`&cTotal Coins: &6${Utils.formatNumber(totalCoins)}`);
         if (floorLoot?.["Cost"]) {
             ChatLib.chat(`&cTotal Cost: &6${Utils.formatNumber(floorLoot["Cost"])}`);
         }
 
-        if (floorLoot?.["Keys"]) {
-            ChatLib.chat(`&cKeys Used: &6${floorLoot["Keys"]}`);
-        }
-
         if (totalCoins && floorLoot?.["Cost"]) {
             ChatLib.chat(`&cFinal Coins: &6${Utils.formatNumber(totalCoins - floorLoot["Cost"])}`);
-        }
-        
-
-        if (printTotal) {
-            ChatLib.chat(`&cProfit/Chest: &6${Utils.formatNumber(Math.trunc(totalCoins / floorLoot["Total"]))}`);
         }
     }
 

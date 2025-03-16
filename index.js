@@ -939,6 +939,16 @@ class Utils {
         ChatLib.chat(`&cFinal Coins: &6${Utils.formatNumber(totalCoins - (floorLoot?.["Cost"] || 0) - kismetPrice - keyPrice)}`);
     }
 
+    static combineAndSum = (obj1, obj2) => {
+        const result = { ...obj1 };
+        
+        Object.keys(obj2).forEach(key => {
+          result[key] = (key in result) ? result[key] + obj2[key] : obj2[key];
+        });
+        
+        return result;
+    }
+
     static tierToColor = {
         "COMMON": "&f",
         "UNCOMMON": "&a",
@@ -1392,17 +1402,26 @@ class BigCommand {
         }
 
         floorStr += "The Catacombs Floor ";
+        
+        let finalFloorLoot;
+
+        if (runData["chests"]?.[floorStr + Utils.toRoman[parseInt(floor.charAt(1)) - 1]] && runData["chests"]?.[floorStr + floor.charAt(1)]) {
+            finalFloorLoot = Utils.combineAndSum(runData["chests"][floorStr + Utils.toRoman[parseInt(floor.charAt(1)) - 1]], runData["chests"]?.[floorStr + floor.charAt(1)]);
+        } else if (runData["chests"]?.[floorStr + Utils.toRoman[parseInt(floor.charAt(1)) - 1]]) {
+            finalFloorLoot = runData["chests"]?.[floorStr + Utils.toRoman[parseInt(floor.charAt(1)) - 1]];
+        } else if (runData["chests"]?.[floorStr + floor.charAt(1)]) {
+            finalFloorLoot = runData["chests"]?.[floorStr + floor.charAt(1)];
+        }
+
         floorStr += Utils.toRoman[parseInt(floor.charAt(1)) - 1];
 
-        let floorLoot = runData["chests"]?.[floorStr];
-
-        if (!floorLoot) {
+        if (!finalFloorLoot) {
             ChatLib.chat("&cInvalid Floor or no loot tracked for that floor");
             return;
         }
 
         Utils.chatMsgClickCMD(`&fLoot for &c${floorStr}`, `/${BigCommand.cmdName} floorstats ${floor}`);
-        Utils.printFloorLoot(floorLoot);
+        Utils.printFloorLoot(finalFloorLoot);
     }
 
     static dodge = (args) => {

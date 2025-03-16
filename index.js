@@ -17,10 +17,12 @@ const S02PacketChat = Java.type("net.minecraft.network.play.server.S02PacketChat
 const S32PacketConfirmTransaction = Java.type("net.minecraft.network.play.server.S32PacketConfirmTransaction");
 const C0EPacketClickWindow = Java.type("net.minecraft.network.play.client.C0EPacketClickWindow");
 const File = Java.type("java.io.File");
+const Loader = Java.type("net.minecraftforge.fml.common.Loader");
 
 const uuidToData = new Map();
 const namesToUUID = new Map();
 const tabCompleteNames = new Set();
+const hasPV = Loader.isModLoaded("hatecheaters") || Loader.isModLoaded("notenoughupdates");
 
 const data = new PogObject("bigtracker", {
     firstTime: true,
@@ -155,6 +157,12 @@ class ChatHandler {
             return;
         }
 
+        if (text.match(/\s*Team Score: (\d+) \(.+\)/)) {
+            let match = text.match(/\s*Team Score: (\d+) \(.+\)/);
+            ChatHandler.dungeon.score[0] = parseInt(match[1]);
+            return;
+        }
+
         if (text.startsWith("[BOSS] The Watcher:")) {
             if (!ChatHandler.dungeon.splits[DungeonRun.SplitType.START][DungeonRun.SplitType.CAMP]) {
                 ChatHandler.dungeon.doSplit(DungeonRun.SplitType.BR, DungeonRun.SplitType.END);
@@ -268,7 +276,10 @@ class ChatHandler {
             let nPartyMembers = ChatHandler.dungeon.numPartyMembers;
             let t = ChatHandler.dungeon.floor?.[0];
             let f = ChatHandler.dungeon.floor?.[1];
-            let score = Utils.findScoreboardScore();
+            let score = ChatHandler.dungeon.score;
+            if (score.length == 0) {
+                score[0] = Utils.findScoreboardScore();
+            }
 
             if (!t || !f) {
                 console.log(`error on scoreboard floor: ${t} ${f}`);
@@ -289,7 +300,7 @@ class ChatHandler {
                     avg: time,
                     slowest: time,
                     num: 1,
-                    avgScore: score,
+                    avgScore: score[0],
                     avgScoreN: 1
                 }
             } else {
@@ -305,7 +316,7 @@ class ChatHandler {
                     temp.avgScoreN = 0;
                 }
                 temp.avg = Utils.calcMovingAvg(temp.avg, temp.num, time);
-                temp.avgScore = Utils.calcMovingAvg(temp.avgScore, temp.avgScoreN, score);
+                temp.avgScore = Utils.calcMovingAvg(temp.avgScore, temp.avgScoreN, score[0]);
                 temp.avgScoreN += 1;
                 temp.num += 1;
                 runData[t][f][nPartyMembers] = temp;
@@ -318,7 +329,7 @@ class ChatHandler {
             }
             
             if (BigCommand.dungeonSession != null) {
-                BigCommand.dungeonSession.endRun(time, score, ChatHandler.dungeon.floor, DungeonRun.finalizeSplits(ChatHandler.dungeon.splits));
+                BigCommand.dungeonSession.endRun(time, score[0], ChatHandler.dungeon.floor, DungeonRun.finalizeSplits(ChatHandler.dungeon.splits));
             }
 
             ChatHandler.dungeon.runDone = true;
@@ -633,7 +644,10 @@ class BigPlayer {
                 ChatLib.chat(`&9Pre4 &7>> &f${this.playerData?.["pre4rate"] || 0}/${this.playerData?.["pre4raten"]} (${((this.playerData?.["pre4rate"] || 0) / (this.playerData?.["pre4raten"] || 1) * 100).toFixed(2)}%)`);
             }
         } else {
-            ChatLib.chat("&8Runs &7>> &f0");
+            ChatLib.chat("&8No Runs");
+        }
+        if (hasPV) {
+            Utils.chatMsgClickCMD(`&7>>> Click to PV`, `/pv ${this.playerData["USERNAME"]}`);
         }
     }
     
@@ -751,6 +765,7 @@ class DungeonRun {
         this.doSplit(DungeonRun.SplitType.RUN, DungeonRun.SplitType.START);
         this.doSplit(DungeonRun.SplitType.BR, DungeonRun.SplitType.START);
         this.floor = Utils.findScoreboardFloor();
+        this.score = [];
     }
 
     doSplit(type, or) {

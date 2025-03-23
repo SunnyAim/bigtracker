@@ -664,7 +664,7 @@ class BigPlayer {
             this.playerData[updateType].shift();
         }
 
-        if ([BigPlayer.TaskType.SS, BigPlayer.TaskType.TERMS, BigPlayer.TaskType.RUNDONE].includes(updateType)) {
+        if (BigPlayer.TaskType.SS == updateType) {
             let avg = this.getAvgOfType(updateType);
             ChatLib.chat(`&7> ${this.playerData.USERNAME} > &f${updateType} completed in ${(compMS / 1000).toFixed(2)} (${compTicks / 20}t) pb: [${(this.playerData[updateType + "pb"][0] / 1000).toFixed(2)}, ${this.playerData[updateType + "pb"][1] / 20}] avg: [${(avg[0] / 1000).toFixed(2)}, ${avg[1] / 20}]`);
         }
@@ -2060,89 +2060,89 @@ if (data.firstTime) {
     }
 }
 
-let chestProfits = null;
-let chestProfitNum = null;
+// let chestProfits = null;
+// let chestProfitNum = null;
 
-register("renderSlot", (slot) => {
-    if (!data?.croesusOverlay) return;
-    if (chestProfits == null) return;
+// register("renderSlot", (slot) => {
+//     if (!data?.croesusOverlay) return;
+//     if (chestProfits == null) return;
 
-    let item = slot?.getItem();
-    if (!item) return;
+//     let item = slot?.getItem();
+//     if (!item) return;
 
-    let name = item?.getName()?.removeFormatting();
-    if (!name?.match(/(Wood|Gold|Diamond|Emerald|Obsidian|Bedrock) Chest/)) return;
+//     let name = item?.getName()?.removeFormatting();
+//     if (!name?.match(/(Wood|Gold|Diamond|Emerald|Obsidian|Bedrock) Chest/)) return;
 
-    let index = chestProfits.indexOf(name);
+//     let index = chestProfits.indexOf(name);
 
-    if (index == -1) return;
+//     if (index == -1) return;
 
-    const x = slot.getDisplayX()
-    const y = slot.getDisplayY()
+//     const x = slot.getDisplayX()
+//     const y = slot.getDisplayY()
 
-    Renderer.drawRect(index == 0 ? Renderer.GREEN : Renderer.BLUE, x, y, 16, 16);
+//     Renderer.drawRect(index == 0 ? Renderer.GREEN : Renderer.BLUE, x, y, 16, 16);
 
-    Renderer.translate(x, y + (index * 16), 1000);
-    Renderer.scale(.7);
-    Renderer.colorize(255, 0, 0, 255);
-    Renderer.drawString(chestProfitNum[index], -5, 0);
-    Renderer.finishDraw();
-});
+//     Renderer.translate(x, y + (index * 16), 1000);
+//     Renderer.scale(.7);
+//     Renderer.colorize(255, 0, 0, 255);
+//     Renderer.drawString(chestProfitNum[index], -5, 0);
+//     Renderer.finishDraw();
+// });
 
-register("step", () => {
-    if (!data?.croesusOverlay) return;
-    let isCroesus = Player.getContainer()?.getName()?.includes("The Catacombs");
-    if (!isCroesus) {
-        chestProfits = null;
-        chestProfitNum = null;
-        return;
-    }
+// register("step", () => {
+//     if (!data?.croesusOverlay) return;
+//     let isCroesus = Player.getContainer()?.getName()?.includes("The Catacombs");
+//     if (!isCroesus) {
+//         chestProfits = null;
+//         chestProfitNum = null;
+//         return;
+//     }
 
-    if (chestProfits != null) {
-        return;
-    }
+//     if (chestProfits != null) {
+//         return;
+//     }
 
-    chestProfits = [];
-    chestProfitNum = [];
+//     chestProfits = [];
+//     chestProfitNum = [];
     
-    let profitToChest = new Map();
+//     let profitToChest = new Map();
 
-    let containerItems = Player.getContainer().getItems().filter(item => item?.getName()?.removeFormatting()?.match(/(Wood|Gold|Diamond|Emerald|Obsidian|Bedrock) Chest/));
-    for (let i = 0; i < containerItems.length; i++) {
-        let item = containerItems[i];
-        let profit = 0;
-        let lore = item.getLore();
-        // let alreadyOpened = false;
-        for (let i = 0; i < lore.length; i++) {
-            let line = lore[i].removeFormatting().replaceAll(",", "");
-            if (line.match(/(\d+) Coins/)) {
-                profit -= parseInt(line.match(/(\d+) Coins/)[1]);
-            } else if (line == "Dungeon Chest Key") {
-                // profit -= Prices.getPrice("DUNGEON_CHEST_KEY");
-            } else if (line.includes("Already opened!")) {
-                // alreadyOpened = true;
-            } else if (line.match(/(Undead|Wither) Essence x(\d+)/)) {
-                let match = line.match(/(Undead|Wither) Essence x(\d+)/);
-                let type = match[1] + " Essence";
-                profit += Prices.getPrice(type) * parseInt(match[2]);
-            } else {
-                profit += Prices.getPrice(lore[i].removeFormatting());
-            }
-        }
-        profitToChest.set(profit, item.getName().removeFormatting());
-    }
+//     let containerItems = Player.getContainer().getItems().filter(item => item?.getName()?.removeFormatting()?.match(/(Wood|Gold|Diamond|Emerald|Obsidian|Bedrock) Chest/));
+//     for (let i = 0; i < containerItems.length; i++) {
+//         let item = containerItems[i];
+//         let profit = 0;
+//         let lore = item.getLore();
+//         // let alreadyOpened = false;
+//         for (let i = 0; i < lore.length; i++) {
+//             let line = lore[i].removeFormatting().replaceAll(",", "");
+//             if (line.match(/(\d+) Coins/)) {
+//                 profit -= parseInt(line.match(/(\d+) Coins/)[1]);
+//             } else if (line == "Dungeon Chest Key") {
+//                 // profit -= Prices.getPrice("DUNGEON_CHEST_KEY");
+//             } else if (line.includes("Already opened!")) {
+//                 // alreadyOpened = true;
+//             } else if (line.match(/(Undead|Wither) Essence x(\d+)/)) {
+//                 let match = line.match(/(Undead|Wither) Essence x(\d+)/);
+//                 let type = match[1] + " Essence";
+//                 profit += Prices.getPrice(type) * parseInt(match[2]);
+//             } else {
+//                 profit += Prices.getPrice(lore[i].removeFormatting());
+//             }
+//         }
+//         profitToChest.set(profit, item.getName().removeFormatting());
+//     }
 
-    let sortedProfit = Array.from(profitToChest.keys()).map(val => parseFloat(val)).sort( (a, b) => a - b).reverse();
-    let keyPrice = Prices.getPrice("DUNGEON_CHEST_KEY");
-    for (let i = 0; i < 2; i++) {
-        if (sortedProfit[i] - (keyPrice * i) < (data?.minProfit || 100000)) {
-            return;
-        }
+//     let sortedProfit = Array.from(profitToChest.keys()).map(val => parseFloat(val)).sort( (a, b) => a - b).reverse();
+//     let keyPrice = Prices.getPrice("DUNGEON_CHEST_KEY");
+//     for (let i = 0; i < 2; i++) {
+//         if (sortedProfit[i] - (keyPrice * i) < (data?.minProfit || 100000)) {
+//             return;
+//         }
 
-        chestProfits.push(profitToChest.get(sortedProfit[i]));
-        chestProfitNum.push(`${Utils.formatNumber(Math.floor(sortedProfit[i] - (keyPrice * i)))}`);
-    }
-}).setFps(10);
+//         chestProfits.push(profitToChest.get(sortedProfit[i]));
+//         chestProfitNum.push(`${Utils.formatNumber(Math.floor(sortedProfit[i] - (keyPrice * i)))}`);
+//     }
+// }).setFps(10);
 
 
 

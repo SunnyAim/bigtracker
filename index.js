@@ -1162,7 +1162,7 @@ register("packetSent", (packet, event) => {
 
 
 class BigCommand {
-    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "session", "croesus", "runhistorylength", "autokick", "sayreason", "viewfile", "autostart", "minprofit", "debugmsgs", "hideworthless", "stats", "importcheaters"];
+    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "session", "croesus", "runhistorylength", "autokick", "sayreason", "viewfile", "autostart", "minprofit", "debugmsgs", "hideworthless", "stats", "importcheaters", "importoldplayers"];
     static cmdName = "big";
     static chestTypes = ["WOOD CHEST REWARDS", "GOLD CHEST REWARDS", "DIAMOND CHEST REWARDS", "EMERALD CHEST REWARDS", "OBSIDIAN CHEST REWARDS", "BEDROCK CHEST REWARDS"];
     static essenceTypes = ["Undead Essence", "Wither Essence"];
@@ -1218,14 +1218,36 @@ class BigCommand {
                 "worstSS": [],
                 "mostRuns": [],
                 "mostDeaths": [],
-                "longestDodgeLen": []
+                "longestDodgeLen": [],
+                "numCheaters": 0,
+                "bestCamp": [],
+                "worstCamp": [],
+                "bestRunAvg": [],
+                "worstRunAvg": [],
+                "bestSSAvg": [],
+                "worstSSAvg": [],
+                "bestCampAvg": [],
+                "worstCampAvg": []
             };
+
+            let getAvg = (arr) => {
+                let tempMSArr = arr.map( (x) => x[0]).sort((a, b) => a - b);
+                let tempTickArr = arr.map( (x) => x[1]).sort((a, b) => a - b);
+                
+                let half = Math.floor(tempMSArr.length / 2);
+        
+                let tempMs = (tempMSArr.length % 2 ? tempMSArr[half] : (tempMSArr[half - 1] + tempMSArr[half]) / 2);
+                let tempTick = (tempTickArr.length % 2 ? tempTickArr[half] : (tempTickArr[half - 1] + tempTickArr[half]) / 2);
+        
+                return [tempMs, tempTick];
+            }
 
             for (let i = 0; i < fileNameList.length; i++) {
                 let tempPlayer = new BigPlayer(fileNameList[i].replace(".json", ""));
 
-                if (tempPlayer.playerData?.["SSpb"]) {
-                    if (tempPlayer.playerData?.["USERNAME"] == Player.getName().toLowerCase()) continue;
+                if (tempPlayer.playerData?.["SSpb"]?.[0]) {
+                    // if (tempPlayer.playerData?.["USERNAME"] == Player.getName().toLowerCase()) continue;
+                    // why am i not includign urself idk why i originally did that? ig ill leave it commented?
 
                     if (tracking["bestSS"].length == 0) {
                         tracking["bestSS"] = [tempPlayer.playerData["USERNAME"], tempPlayer.playerData["SSpb"]];
@@ -1237,14 +1259,84 @@ class BigCommand {
                     }
                 }
 
+                if (tempPlayer.playerData?.["CAMPpb"]?.[0]) {
+                    if (tracking["bestCamp"].length == 0) {
+                        tracking["bestCamp"] = [tempPlayer.playerData["USERNAME"], tempPlayer.playerData["CAMPpb"]];
+                        tracking["worstCamp"] = [tempPlayer.playerData["USERNAME"], tempPlayer.playerData["CAMPpb"]];
+                    } else if (tempPlayer.playerData?.["CAMPpb"][0] < tracking["bestCamp"][1][0]) {
+                        tracking["bestCamp"] = [tempPlayer.playerData["USERNAME"], tempPlayer.playerData["CAMPpb"]];
+                    } else if (tempPlayer.playerData?.["CAMPpb"][0] > tracking["worstCamp"][1][0]) {
+                        tracking["worstCamp"] = [tempPlayer.playerData["USERNAME"], tempPlayer.playerData["CAMPpb"]];
+                    }
+                }
+
                 if (tracking["mostRuns"].length == 0 || tempPlayer.playerData?.["RUNS"] > tracking["mostRuns"][1]) {
+                    if (tempPlayer.playerData?.["USERNAME"] == Player.getName().toLowerCase()) continue;
                     tracking["mostRuns"] = [tempPlayer.playerData["USERNAME"], (tempPlayer.playerData?.["RUNS"] || 0)];
+                }
+
+                if (tempPlayer.playerData?.["NOTE"]?.toLowerCase()?.includes("cheat")) {
+                    tracking["numCheaters"] += 1;
+                }
+
+                if (tempPlayer.playerData?.["RUNDONE"] && tempPlayer.playerData?.["RUNDONE"].length > 5) {
+                    let avg = getAvg(tempPlayer.playerData["RUNDONE"]);
+
+                    if (tracking["bestRunAvg"].length == 0) {
+                        tracking["bestRunAvg"] = [tempPlayer.playerData["USERNAME"], avg];
+                        tracking["worstRunAvg"] = [tempPlayer.playerData["USERNAME"], avg];
+                    } else if (tracking["bestRunAvg"][1][0] > avg[0]) {
+                        tracking["bestRunAvg"] = [tempPlayer.playerData["USERNAME"], avg];
+                    } else if (tracking["worstRunAvg"][1][0] < avg[0]) {
+                        tracking["worstRunAvg"] = [tempPlayer.playerData["USERNAME"], avg];
+                    }
+                }
+
+                if (tempPlayer.playerData?.["SS"] && tempPlayer.playerData["SS"].length > 5) {
+                    let avg = getAvg(tempPlayer.playerData["SS"]);
+
+                    if (tracking["bestSSAvg"].length == 0) {
+                        tracking["bestSSAvg"] = [tempPlayer.playerData["USERNAME"], avg];
+                        tracking["worstSSAvg"] = [tempPlayer.playerData["USERNAME"], avg];
+                    } else if (tracking["bestSSAvg"][1][0] > avg[0]) {
+                        tracking["bestSSAvg"] = [tempPlayer.playerData["USERNAME"], avg];
+                    } else if (tracking["worstSSAvg"][1][0] < avg[0]) {
+                        tracking["worstSSAvg"] = [tempPlayer.playerData["USERNAME"], avg];
+                    }
+                }
+
+                if (tempPlayer.playerData?.["CAMP"] && tempPlayer.playerData["CAMP"].length > 5) {
+                    // bestCampAvg
+                    let avg = getAvg(tempPlayer.playerData["CAMP"]);
+
+                    if (tracking["bestCampAvg"].length == 0) {
+                        tracking["bestCampAvg"] = [tempPlayer.playerData["USERNAME"], avg];
+                        tracking["worstCampAvg"] = [tempPlayer.playerData["USERNAME"], avg];
+                    } else if (tracking["bestCampAvg"][1][0] > avg[0]) {
+                        tracking["bestCampAvg"] = [tempPlayer.playerData["USERNAME"], avg];
+                    } else if (tracking["worstCampAvg"][1][0] < avg[0]) {
+                        tracking["worstCampAvg"] = [tempPlayer.playerData["USERNAME"], avg];
+                    }
                 }
             }
 
-            ChatLib.chat(`&7> Best SS: ${tracking["bestSS"][0]} : ${Utils.formatMSandTick(tracking["bestSS"][1])}`);
-            ChatLib.chat(`&7> Worst SS: ${tracking["worstSS"][0]} : ${Utils.formatMSandTick(tracking["worstSS"][1])}`);
-            ChatLib.chat(`&7> Most Runs: ${tracking["mostRuns"][0]} : ${tracking["mostRuns"][1]}`);
+
+            try {
+                // ChatLib.chat(``)
+                ChatLib.chat(`&7> Cheaters: ${tracking["numCheaters"]}`);
+                ChatLib.chat(`&7> Best SS PB: &f${tracking["bestSS"][0]}&7: ${Utils.formatMSandTick(tracking["bestSS"][1])}`);
+                ChatLib.chat(`&7> Worst SS PB: &f${tracking["worstSS"][0]}&7: ${Utils.formatMSandTick(tracking["worstSS"][1])}`);
+                ChatLib.chat(`&7> Best SS Avg: &f${tracking["bestSSAvg"][0]}&7: ${Utils.formatMSandTick(tracking["bestSSAvg"][1])}`);
+                ChatLib.chat(`&7> Worst SS Avg: &f${tracking["worstSSAvg"][0]}&7: ${Utils.formatMSandTick(tracking["worstSSAvg"][1])}`);
+                ChatLib.chat(`&7> Most Runs w/ &f${tracking["mostRuns"][0]}&7: ${tracking["mostRuns"][1]}`);
+                ChatLib.chat(`&7> Best Camp PB: &f${tracking["bestCamp"][0]}&7: ${Utils.formatMSandTick(tracking["bestCamp"][1])}`);
+                ChatLib.chat(`&7> Worst Camp PB: &f${tracking["worstCamp"][0]}&7: ${Utils.formatMSandTick(tracking["worstCamp"][1])}`);
+                ChatLib.chat(`&7> Best Camp Avg: &f${tracking["bestCampAvg"][0]}&7: ${Utils.formatMSandTick(tracking["bestCampAvg"][1])}`);
+                ChatLib.chat(`&7> Worst Camp Avg: &f${tracking["worstCampAvg"][0]}&7: ${Utils.formatMSandTick(tracking["worstCampAvg"][1])}`);
+                ChatLib.chat(`&7> Best Runtime Avg: &f${tracking["bestRunAvg"][0]}&7: ${Utils.formatMSandTick(tracking["bestRunAvg"][1])}`);
+                ChatLib.chat(`&7> Worst Runtime Avg: &f${tracking["worstRunAvg"][0]}&7: ${Utils.formatMSandTick(tracking["worstRunAvg"][1])}`);
+            } catch(e) { console.error(e) }
+
         }).start();
     }
 
@@ -1901,6 +1993,9 @@ register("command", (...args) => {
         case "help":
             BigCommand.help();
             break;
+        case "importoldplayers":
+            importOldPlayers();
+            break;
         case "importcheaters":
             BigCommand.importCheaters();
             break;
@@ -2029,6 +2124,10 @@ if (data.firstTime) {
     data.save();
     runData.save();
 
+    importOldPlayers();
+}
+
+const importOldPlayers = () => {
     if (FileLib.exists("./config/ChatTriggers/modules/bigtracker/players")) {
         let files = new File("./config/ChatTriggers/modules/bigtracker/players").list();
         

@@ -1162,7 +1162,7 @@ register("packetSent", (packet, event) => {
 
 
 class BigCommand {
-    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "session", "croesus", "runhistorylength", "autokick", "sayreason", "viewfile", "autostart", "minprofit", "debugmsgs", "hideworthless", "stats"];
+    static tabCommands = ["dodge", "note", "list", "floorstats", "loot", "session", "croesus", "runhistorylength", "autokick", "sayreason", "viewfile", "autostart", "minprofit", "debugmsgs", "hideworthless", "stats", "importcheaters"];
     static cmdName = "big";
     static chestTypes = ["WOOD CHEST REWARDS", "GOLD CHEST REWARDS", "DIAMOND CHEST REWARDS", "EMERALD CHEST REWARDS", "OBSIDIAN CHEST REWARDS", "BEDROCK CHEST REWARDS"];
     static essenceTypes = ["Undead Essence", "Wither Essence"];
@@ -1182,7 +1182,28 @@ class BigCommand {
         Utils.chatMsgClickCMD("&7>> &ffloorstats &bfloor &7(ex: floorstats m7)", `/${BigCommand.cmdName} floorstats m7`);
         Utils.chatMsgClickCMD("&7>> &floot &bfloor &7(ex: loot m7)", `/${BigCommand.cmdName} loot m7`);
         Utils.chatMsgClickCMD("&7>> &fsession &7(click for more info)", `/${BigCommand.cmdName} session`);
+        Utils.chatMsgClickCMD(`&7>> &fimportcheaters &7imports, dodges, and notes eatplastic's list of m7 pf cheaters`, `/${BigCommand.cmdName} importcheaters`);
         ChatLib.chat("&7>> &fviewfile &busername &7(prints the players entire file in your chat, no reason to ever use this probably)");
+    }
+
+    static importCheaters = () => {
+        request(`https://raw.githubusercontent.com/eatpIastic/list/refs/heads/main/uuids.txt`).then( (res) => {
+            res = JSON.parse(res);
+            let UUIDS = Object.keys(res);
+            for (let i = 0; i < UUIDS.length; i++) {
+                let uuid = UUIDS[i];
+                let name = res[uuid];
+                let player = new BigPlayer(uuid, name);
+                if (!player.playerData?.["DODGE"]) {
+                    player.playerData["DODGE"] = true;
+                }
+                if (!player.playerData?.["NOTE"] || player.playerData["NOTE"].trim() == "") {
+                    player.playerData["NOTE"] = "cheater imported from list";
+                }
+                player.save();
+            }
+            ChatLib.chat(`&7> &asuccessfully imported &f${UUIDS.length} &acheaters from the list`);
+        }).catch( (e) => console.error(e));
     }
 
     static getFileStats = () => {
@@ -1879,6 +1900,9 @@ register("command", (...args) => {
     switch (args[0]) {
         case "help":
             BigCommand.help();
+            break;
+        case "importcheaters":
+            BigCommand.importCheaters();
             break;
         case "stats":
             BigCommand.getFileStats();

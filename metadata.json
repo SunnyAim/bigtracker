@@ -1,8 +1,8 @@
 {
   "name": "bigtracker",
   "creator": "eatplastic",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "entry": "index.js",
   "description": "m7 player tracker / dodgelist",
-  "requires": ["PogData", "requestV2"]
+  "requires": ["PogData", "tska"]
 }

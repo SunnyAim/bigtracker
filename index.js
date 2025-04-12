@@ -1,5 +1,5 @@
 import PogObject from "../PogData";
-import request from "../requestV2";
+import { fetch } from "../tska/polyfill/Fetch";
 
 /*
 to do     
@@ -64,18 +64,27 @@ const getPlayerByName = (name, task=null, extra=null) => {
         return;
     }
 
-    request(`https://api.mojang.com/users/profiles/minecraft/${name}`)
-        .then(function(res) {
-            const UUID = JSON.parse(res)?.id;
-            NAME = JSON.parse(res)?.name?.toLowerCase();
-            namesToUUID.set(NAME, UUID);
-            tabCompleteNames.add(NAME);
+    fetch(`https://api.mojang.com/users/profiles/minecraft/${name}`, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Chattriggers)'
+        },
+        json: true
+    })
+    .then(res => {
+        // let UUID = JSON.parse(res)?.id;
+        let UUID = res.id;
+        let NAME = res.name.toLowerCase();
+        // let NAME = JSON.parse(res)?.name?.toLowerCase();
+        namesToUUID.set(NAME, UUID);
+        tabCompleteNames.add(NAME);
 
-            let player = new BigPlayer(UUID, NAME);
-            player.doTask(task, extra);
-            uuidToData.set(UUID, player);
-        }
-    );
+        let player = new BigPlayer(UUID, NAME);
+        player.doTask(task, extra);
+        uuidToData.set(UUID, player);
+    }).catch(error => {
+        console.error(error);
+        return null;
+    });
 }
 
 
@@ -1187,7 +1196,12 @@ class BigCommand {
     }
 
     static importCheaters = () => {
-        request(`https://raw.githubusercontent.com/eatpIastic/list/refs/heads/main/uuids.txt`).then( (res) => {
+        fetch(`https://raw.githubusercontent.com/eatpIastic/list/refs/heads/main/uuids.txt`, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Chattriggers)'
+            },
+            json: true
+        }).then( (res) => {
             res = JSON.parse(res);
             let UUIDS = Object.keys(res);
             let numDodges = 0;
@@ -1232,7 +1246,9 @@ class BigCommand {
                 "bestSSAvg": [],
                 "worstSSAvg": [],
                 "bestCampAvg": [],
-                "worstCampAvg": []
+                "worstCampAvg": [],
+                "bestPre4Avg": [],
+                "worstPre4Avg": []
             };
 
             let getAvg = (arr) => {
@@ -1323,11 +1339,22 @@ class BigCommand {
                         tracking["worstCampAvg"] = [tempPlayer.playerData["USERNAME"], avg];
                     }
                 }
+
+                if (tempPlayer.playerData?.["pre4raten"] && tempPlayer.playerData?.["pre4raten"] >= 7) {
+                    let percent = tempPlayer.playerData["pre4rate"] / tempPlayer.playerData["pre4raten"];
+                    if (tracking["bestPre4Avg"].length == 0) {
+                        tracking["bestPre4Avg"] = [tempPlayer.playerData["USERNAME"], percent];
+                        tracking["worstPre4Avg"] = [tempPlayer.playerData["USERNAME"], percent];
+                    } else if (tracking["bestPre4Avg"] < percent) {
+                        tracking["bestPre4Avg"] = [tempPlayer.playerData["USERNAME"], percent];
+                    } else if (tracking["worstPre4Avg"] > percent) {
+                        tracking["worstPre4Avg"] = [tempPlayer.playerData["USERNAME"], percent];
+                    }
+                }
             }
 
 
             try {
-                // ChatLib.chat(``)
                 ChatLib.chat(`&7> Cheaters: ${tracking["numCheaters"]}`);
                 ChatLib.chat(`&7> Best SS PB: &f${tracking["bestSS"][0]}&7: ${Utils.formatMSandTick(tracking["bestSS"][1])}`);
                 ChatLib.chat(`&7> Worst SS PB: &f${tracking["worstSS"][0]}&7: ${Utils.formatMSandTick(tracking["worstSS"][1])}`);
@@ -1340,6 +1367,8 @@ class BigCommand {
                 ChatLib.chat(`&7> Worst Camp Avg: &f${tracking["worstCampAvg"][0]}&7: ${Utils.formatMSandTick(tracking["worstCampAvg"][1])}`);
                 ChatLib.chat(`&7> Best Runtime Avg: &f${tracking["bestRunAvg"][0]}&7: ${Utils.formatMSandTick(tracking["bestRunAvg"][1])}`);
                 ChatLib.chat(`&7> Worst Runtime Avg: &f${tracking["worstRunAvg"][0]}&7: ${Utils.formatMSandTick(tracking["worstRunAvg"][1])}`);
+                ChatLib.chat(`&7> Best Pre4 Rate: &f${tracking["bestPre4Avg"][0]}&7: ${(tracking["bestPre4Avg"][1]).toFixed(1)}`);
+                ChatLib.chat(`&7> Worst Pre4 Rate: &f${tracking["worstPre4Avg"][0]}&7: ${(tracking["worstPre4Avg"][1]).toFixed(1)}`);
             } catch(e) { console.error(e) }
 
         }).start();
@@ -1695,9 +1724,13 @@ class Prices {
     }
 
     static updateItemAPI() {
-        request(Prices.itemApiURL)
-            .then(function(res) {
-                let tempItemData = JSON.parse(res);
+        fetch(Prices.itemApiURL, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Chattriggers)'
+            },
+            json: true
+        }).then(function(res) {
+                let tempItemData = res;
                 let nameToID = {
                     lastUpdated: tempItemData.lastUpdated
                 };
@@ -1711,13 +1744,17 @@ class Prices {
                 Prices.priceData.itemAPI = nameToID;
                 Prices.priceData.nameToColor = nameToColor;
                 Prices.priceData.save();
-            });
+        });
     }
 
     static updateBZPrices() {
-        request(Prices.bzURL)
-            .then(function(res) {
-                let tempBzPrices = JSON.parse(res);
+        fetch(Prices.bzURL, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Chattriggers)'
+            },
+            json: true
+        }).then(function(res) {
+                let tempBzPrices = res;
                 let realBzPrices = {
                     lastUpdated: tempBzPrices.lastUpdated
                 };
@@ -1728,16 +1765,20 @@ class Prices {
 
                 Prices.priceData.bzPrices = realBzPrices;
                 Prices.priceData.save();
-            });
+        });
     }
 
     static updateAHPrices() {
-        request(Prices.ahURL)
-            .then(function(res) {
+        fetch(Prices.ahURL, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Chattriggers)'
+            },
+            json: true
+        }).then(function(res) {
                 Prices.priceData.ahPrices = JSON.parse(res);
                 Prices.priceData.ahLastUpdated = Date.now();
                 Prices.priceData.save();
-            });
+        });
     }
 }
 
